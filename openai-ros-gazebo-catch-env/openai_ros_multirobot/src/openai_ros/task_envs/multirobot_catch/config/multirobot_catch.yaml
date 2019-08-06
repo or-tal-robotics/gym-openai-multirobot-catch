@@ -1,0 +1,24 @@
+turtlebot2: #namespace
+    
+    n_actions: 3 # We have 3 actions, Forwards,TurnLeft,TurnRight,Backwards
+
+    speed_step: 1.0 # Time to wait in the reset phases
+
+    linear_forward_speed: 0.5 # Spwwed for ging fowards
+    linear_turn_speed: 0.05 # Lienare speed when turning
+    angular_speed: 0.3 # Angular speed when turning Left or Right
+
+    
+    catch_reward: 1
+    cooperative_catch_reward: 0.1
+    time_penelty: -0.005
+    max_x: 10
+    max_y: 10
+    min_x: -10
+    min_y: -10
+    
+    
+
+
+    
+
