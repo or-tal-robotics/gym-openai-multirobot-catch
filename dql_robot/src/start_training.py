@@ -3,7 +3,6 @@
 import gym
 import numpy as np
 import time
-import qlearn
 from gym import wrappers
 # ROS packages required
 import rospy
@@ -17,7 +16,70 @@ import tensorflow as tf
 from datetime import datetime
 import sys
 
+MAX_EXPERIENCE = 50000
+MIN_EXPERIENCE = 5000
+TARGET_UPDATE_PERIOD = 10000
+IM_SIZE = 84
+K = 3
+n_history = 4
 
+def play_ones(env,
+              sess,
+              total_t,
+              experience_replay_buffer,
+              model,
+              target_model,
+              image_transformer,
+              gamma,
+              batch_size,
+              epsilon,
+              epsilon_change,
+              epsilon_min):
+    
+    t0 = datetime.now()
+    obs = env.reset()
+    state = []
+    for ii in range(3):
+        obs_small = image_transformer.transform(obs[ii], sess)
+        state.append(np.stack([obs_small] * n_history, axis = 2))
+    loss = None
+    
+    total_time_training = 0
+    num_steps_in_episode = 0
+    episode_reward = [0,0,0]
+    record = True
+    done = False
+    
+    while not done:
+        
+        if total_t % TARGET_UPDATE_PERIOD == 0:
+            for ii in range(3):
+                target_model[ii].copy_from(model[ii])
+            print("model is been copied!")
+        action = []
+        for ii in range(3):
+            action.append(model[ii].sample_action(state, epsilon))
+        obs, reward, done, _ = env.step(action)
+        for ii in range(3):
+            obs_small = image_transformer.transform(obs[ii], sess)
+            next_state = update_state(state[ii], obs_small)
+        
+            episode_reward[ii] += reward[ii]
+        
+            experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
+        t0_2 = datetime.now()
+        for ii in range(3):
+            loss = learn(model[ii], target_model[ii], experience_replay_buffer[ii], gamma, batch_size)
+        dt = datetime.now() - t0_2
+        
+        total_time_training += dt.total_seconds()
+        num_steps_in_episode += 1
+        
+        state = next_state
+        total_t += 1
+        epsilon = max(epsilon - epsilon_change, epsilon_min)
+        
+    return total_t, episode_reward, (datetime.now()-t0), num_steps_in_episode, total_time_training/num_steps_in_episode, loss
 
 
 if __name__ == '__main__':
@@ -60,15 +122,97 @@ if __name__ == '__main__':
 
     running_step = rospy.get_param("/turtlebot2/running_step")
 
-    # Initialises the algorithm that we are going to use for learning
-    #qlearn = qlearn.QLearn(actions=range(env.action_space.n),
-     #                      alpha=Alpha, gamma=Gamma, epsilon=Epsilon)
-    #initial_epsilon = qlearn.epsilon
+    conv_layer_sizes = [(32,8,4), (64,4,2), (64,3,1)]
+    hidden_layer_sizes = [512]
+    gamma = 0.99
+    batch_sz = 32
+    num_episodes = 3500
+    total_t = 0
+    start_time = time.time()
+    highest_reward = 0
+    experience_replay_buffer = []
+    models = []
+    target_models = []
+    for ii in range(3):
+        experience_replay_buffer.append(ReplayMemory())
+        models.append(DQN(
+            K = K,
+            conv_layer_sizes=conv_layer_sizes,
+            hidden_layer_sizes=hidden_layer_sizes,
+            scope="model",
+            image_size=IM_SIZE
+            ))
+        target_models.append(DQN(
+            K = K,
+            conv_layer_sizes=conv_layer_sizes,
+            hidden_layer_sizes=hidden_layer_sizes,
+            scope="model",
+            image_size=IM_SIZE
+            ))
+    image_transformer = ImageTransformer(IM_SIZE)
+    episode_rewards = np.zeros((3,num_episodes))
+    episode_lens = np.zeros((3,num_episodes))
     obs = env.reset()
-    for ii in range(100):
-        obs, reward, done, _ = env.step([1,1,1])
+    with tf.Session() as sess:
+        for ii in range(3):
+            models[ii].set_session(sess)
+            target_models[ii].set_session(sess)
+        sess.run(tf.global_variables_initializer())
+        print("Initializing experience replay buffer...")
+        obs = env.reset()
+        
+        for i in range(MIN_EXPERIENCE):
+            action = []
+            for ii in range(3):
+                action.append(np.random.choice(K))
+            obs, reward, done, _ = env.step(action)
+            for ii in range(3):
+                obs_small = image_transformer.transform(obs[ii], sess)
+                experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
+            if done:
+                obs = env.reset()
 
-    env.close()
+        
+        print("Done! Starts Training!!")     
+        t0 = datetime.now()
+        for i in range(num_episodes):
+            msg_data = Int16()
+            msg_data.data = i
+            episode_counter_pub.publish(msg_data)
+            total_t, episode_reward, duration, num_steps_in_episode, time_per_step, epsilon = play_ones(
+                    env,
+                    sess,
+                    total_t,
+                    experience_replay_buffer,
+                    model,
+                    target_model,
+                    image_transformer,
+                    gamma,
+                    batch_sz,
+                    epsilon,
+                    epsilon_change,
+                    epsilon_min)
+            episode_rewards[i] = episode_reward
+            episode_lens[i] = num_steps_in_episode
+            last_100_avg = episode_rewards[max(0,i-100):i+1].mean()
+            print("Episode:", i ,
+                  "Duration:", duration,
+                  "Num steps:", num_steps_in_episode,
+                  "Reward:", episode_reward,
+                  "Training time per step:", "%.3f" %time_per_step,
+                  "Avg Reward:", "%.3f"%last_100_avg,
+                  "Epsilon:", "%.3f"%epsilon)
+            sys.stdout.flush()
+        print("Total duration:", datetime.now()-t0)
+        model.save()
+        
+        y = smooth(episode_rewards)
+        plt.plot(episode_rewards, label='orig')
+        plt.plot(y, label='smoothed')
+        plt.legend()
+        plt.show()
+        env.close()
+        
 
     
 
