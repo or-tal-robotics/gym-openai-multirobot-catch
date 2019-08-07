@@ -62,6 +62,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self.catch_reward = rospy.get_param("/turtlebot2/catch_reward")
         self.cooperative_catch_reward = rospy.get_param("/turtlebot2/cooperative_catch_reward")
         self.time_penelty = rospy.get_param("/turtlebot2/time_penelty")
+        self.robot_out_of_bounds_penalty = rospy.get_param("/turtlebot2/robot_out_of_bounds_penalty")
         self.max_x = rospy.get_param("/turtlebot2/max_x") 
         self.max_y = rospy.get_param("/turtlebot2/max_y") 
         self.min_x = rospy.get_param("/turtlebot2/min_x") 
@@ -146,51 +147,48 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
 
     def _is_done(self, observations):
         r_robot = 0.351/2
-        r_ball = 0.2
+        r_prey = 0.2
         p = 0.1
         self._episode_done = False
         if self.step_number > 500:
             self._episode_done = True
-            rospy.logerr("To much steps==>")
+            print("To much steps==> GAME OVER!")
         else:
             for ii in range (3):
                 current_position = numpy.array(self.get_robot_position(ii+1))
                 prey_position = numpy.array(self.get_prey_position())
-                if (r_robot + r_ball + p) <= numpy.linalg.norm(current_position - prey_position):
+                #print (numpy.linalg.norm(current_position - prey_position))
+                if (r_robot + r_prey + p) >= numpy.linalg.norm(current_position - prey_position):
                     self.win[ii] = 1
+                    print("Robot "+str(ii+1)+" catched the prey!")
                     self._episode_done = True
-            
-
+                if current_position[0] > self.max_x or current_position[0] < self.min_x or current_position[1] > self.max_y or current_position[1] < self.min_y:
+                    self._episode_done = True
+                    self.win[ii] = -1
+                    print("Robot "+str(ii+1)+" hit the wall!")
         return self._episode_done
 
     def _compute_reward(self, observations, done):
         reward = [0.0, 0.0, 0.0]
-        
-        prey_position = numpy.array(self.get_prey_position())
-        r_robot = 0.351/2
-        r_ball = 0.2
-        p = 0.1
-
-        if not done:
-            for ii in range(3):
-                current_position = numpy.array(self.get_robot_position(ii+1))
-                if current_position[0] > self.max_x or current_position[0] < self.min_x or current_position[1] > self.max_y or current_position[1] < self.min_y:
-                    reward[ii] += self.robot_out_of_bounds_penalty
-                
-        else:            
+        if done:           
             if 1 in self.win:
                 for ii in range(3):
                     if self.win[ii] == 1:
                         reward[ii] = 100.0*self.catch_reward/(self.step_number+1.0)
                     else:
                         reward[ii] = 100.0*self.cooperative_catch_reward/(self.step_number+1.0)
+            elif -1 in self.win:
+                for ii in range(3):
+                    if self.win[ii] == -1:
+                        reward[ii] = self.robot_out_of_bounds_penalty
+                   
             else:
-                reward = self.time_penelty
+                reward = [self.time_penelty,self.time_penelty,self.time_penelty]
 
 
 
 
-        rospy.logdebug("reward=" + str(reward))
+        print("reward=" + str(reward))
         
         return reward
 

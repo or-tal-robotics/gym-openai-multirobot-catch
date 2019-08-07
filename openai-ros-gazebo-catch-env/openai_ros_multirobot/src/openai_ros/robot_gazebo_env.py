@@ -58,13 +58,14 @@ class RobotGazeboEnv(gym.Env):
         info = {}
         reward = self._compute_reward(obs, done)
         for ii in range(3):
-            self.cumulated_episode_reward[ii] += reward[ii]
+            self.cumulated_episode_reward[ii] = self.cumulated_episode_reward[ii]+ reward[ii]
         self.step_number += 1
         rospy.logdebug("END STEP OpenAIROS")
 
         return obs, reward, done, info
 
     def reset(self):
+        self.win = [0,0,0]
         self.step_number = 0
         rospy.logdebug("Reseting RobotGazeboEnvironment")
         self._reset_sim()
@@ -154,8 +155,8 @@ class RobotGazeboEnv(gym.Env):
             self.gazebo.unpauseSim()
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
-            if self.episode_num > 0:
-                self._del_model()
+            #if self.episode_num > 0:
+                #self._del_model()
             self.gazebo.pauseSim()
             self.gazebo.resetSim()
             self.gazebo.unpauseSim()
@@ -170,8 +171,8 @@ class RobotGazeboEnv(gym.Env):
             rospy.logwarn("DONT RESET CONTROLLERS")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
-            if self.episode_num > 0:
-                self._del_model()
+            #if self.episode_num > 0:
+                #self._del_model()
             self.gazebo.pauseSim()
             self.gazebo.resetSim()
             self.gazebo.unpauseSim()

@@ -250,8 +250,15 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
         time.sleep(sleep_time)
 
     def _prey_step(self):
-        linear_speed = numpy.random.uniform(-0.2,0.5)
-        angular_speed = numpy.random.uniform(-0.5,0.5)
+        if self.prey_position[0] > 4.5 or self.prey_position[0]<-4.5 or self.prey_position[1] > 4.5 or self.prey_position[1]<-4.5:
+            linear_speed = numpy.random.uniform(-0.2,0.0)
+            angular_speed = numpy.random.uniform(-0.2,0.2)
+        elif self.prey_position[0] > 4.0 or self.prey_position[0]<-4.0 or self.prey_position[1] > 4.0 or self.prey_position[1]<-4.0:
+            linear_speed = numpy.random.uniform(0.0,0.1)
+            angular_speed = numpy.random.uniform(0.2,0.5)
+        else:
+            linear_speed = numpy.random.uniform(0.0,0.5)
+            angular_speed = numpy.random.uniform(-0.5,0.5)
         self._move_prey(linear_speed, angular_speed, sleep_time=0.5)
                         
         

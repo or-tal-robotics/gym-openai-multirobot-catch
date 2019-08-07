@@ -1,6 +1,6 @@
 turtlebot2: #namespace
     task_and_robot_environment_name: 'MultiRobotCatch-v0'
-    ros_ws_abspath: "/home/lab/openai_ws"
+    ros_ws_abspath: "/home/lab/openai_ws_catch"
     running_step: 0.04 # amount of time the control will be executed
     pos_step: 0.016     # increment in position for each command
     

@@ -12,10 +12,11 @@ turtlebot2: #namespace
     catch_reward: 1
     cooperative_catch_reward: 0.1
     time_penelty: -0.005
-    max_x: 10
-    max_y: 10
-    min_x: -10
-    min_y: -10
+    robot_out_of_bounds_penalty: -0.5
+    max_x: 4.5
+    max_y: 4.5
+    min_x: -4.5
+    min_y: -4.5
     
     
 

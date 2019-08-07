@@ -60,6 +60,8 @@
     <child link="camera_link"/>
   </joint>
 
+ 
+
   <link name="box">
   <inertial>
     <origin xyz="0 0 0" />
@@ -357,7 +359,8 @@
     </sensor>
   </gazebo>
 
-  <!--<xacro:include filename="$(find dql_robot)/urdf/hokuyo.xacro"/>
-  <xacro:laser name="base_laser" parent="base_link" xyz="0.225 0 0.2" rpy="0 0 0" meshes="package://gazebo_plugins/test/multi_robot_scenario/meshes/laser"/>-->
+	
+  
+
   <xacro:property name="camera_link" value="0.05" /> <!-- Size of square 'camera' box -->
 </robot>

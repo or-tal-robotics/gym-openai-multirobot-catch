@@ -51,10 +51,10 @@
             </range>
           </ray>
 
-          <plugin name="laser" filename="libgazebo_ros_laser.so" >
+         <plugin name="laser_prey" filename="libgazebo_ros_laser.so" >
               <!--<robotNamespace></robotNamespace>-->
-            <topicName>scan</topicName>
-            <frameName>base_laser</frameName>
+            <topicName>/scan</topicName>
+            <robotNamespace>/</robotNamespace>
           </plugin>
           <!--
           <plugin name="laser" filename="libRayPlugin.so" />
