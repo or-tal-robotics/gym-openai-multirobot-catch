@@ -64,7 +64,7 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
         rospy.Subscriber("/robot1/camera/rgb/image_raw", Image, self._camera_rgb_image_raw_callback1)
         rospy.Subscriber("/robot2/camera/rgb/image_raw", Image, self._camera_rgb_image_raw_callback2)
         rospy.Subscriber("/robot3/camera/rgb/image_raw", Image, self._camera_rgb_image_raw_callback3)
-        
+        rospy.Subscriber("/prey/camera/image_raw", Image, self._camera_rgb_image_raw_callback_prey)
 
         self._cmd_vel_pub1 = rospy.Publisher('/robot1/cmd_vel', Twist, queue_size=1)
         self._cmd_vel_pub2 = rospy.Publisher('/robot2/cmd_vel', Twist, queue_size=1)
@@ -155,6 +155,9 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
 
     def _camera_rgb_image_raw_callback3(self, data):
         self.camera_rgb_image_raw3 = self.bridge.imgmsg_to_cv2(data,"rgb8")
+
+    def _camera_rgb_image_raw_callback_prey(self, data):
+        self.camera_rgb_image_raw_prey = self.bridge.imgmsg_to_cv2(data,"rgb8")
             
     def _laser_scan_callback1(self, data):
         self.laser_scan1 = data
@@ -239,6 +242,8 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
             self._cmd_vel_pub2.publish(cmd_vel_value)
         if robot_id == 3:
             self._cmd_vel_pub3.publish(cmd_vel_value)
+        if robot_id == 4:
+            self._cmd_vel_pub_prey.publish(cmd_vel_value)
         time.sleep(sleep_time)
 
 
@@ -278,6 +283,10 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
             return self.camera_rgb_image_raw2
         if robot_id == 3:
             return self.camera_rgb_image_raw3
+        if robot_id == 4:
+            return self.camera_rgb_image_raw_prey
+
+            
         
     def get_laser_scan(self, robot_id):
         if robot_id == 1:

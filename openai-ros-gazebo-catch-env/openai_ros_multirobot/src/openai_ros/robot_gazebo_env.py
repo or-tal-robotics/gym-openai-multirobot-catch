@@ -51,7 +51,7 @@ class RobotGazeboEnv(gym.Env):
 
         self.gazebo.unpauseSim()
         self._set_action(action)
-        self._prey_step()
+        #self._prey_step()
         self.gazebo.pauseSim()
         obs = self._get_obs()
         done = self._is_done(obs)
@@ -66,6 +66,7 @@ class RobotGazeboEnv(gym.Env):
 
     def reset(self):
         self.win = [0,0,0]
+        self.prey_win = 0
         self.step_number = 0
         rospy.logdebug("Reseting RobotGazeboEnvironment")
         self._reset_sim()

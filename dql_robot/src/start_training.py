@@ -15,9 +15,10 @@ import cv2
 import tensorflow as tf
 from datetime import datetime
 import sys
+from std_msgs.msg import Int16
 
 MAX_EXPERIENCE = 50000
-MIN_EXPERIENCE = 5000
+MIN_EXPERIENCE = 100
 TARGET_UPDATE_PERIOD = 10000
 IM_SIZE = 84
 K = 3
@@ -39,36 +40,37 @@ def play_ones(env,
     t0 = datetime.now()
     obs = env.reset()
     state = []
-    for ii in range(3):
+    for ii in range(4):
         obs_small = image_transformer.transform(obs[ii], sess)
         state.append(np.stack([obs_small] * n_history, axis = 2))
     loss = None
     
     total_time_training = 0
     num_steps_in_episode = 0
-    episode_reward = [0,0,0]
+    episode_reward = [0,0,0,0]
     record = True
     done = False
     
     while not done:
         
         if total_t % TARGET_UPDATE_PERIOD == 0:
-            for ii in range(3):
+            for ii in range(4):
                 target_model[ii].copy_from(model[ii])
             print("model is been copied!")
         action = []
-        for ii in range(3):
-            action.append(model[ii].sample_action(state, epsilon))
+        for ii in range(4):
+            action.append(model[ii].sample_action(state[ii], epsilon))
         obs, reward, done, _ = env.step(action)
-        for ii in range(3):
+        next_state = []
+        for ii in range(4):
             obs_small = image_transformer.transform(obs[ii], sess)
-            next_state = update_state(state[ii], obs_small)
+            next_state.append(update_state(state[ii], obs_small))
         
             episode_reward[ii] += reward[ii]
         
             experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
         t0_2 = datetime.now()
-        for ii in range(3):
+        for ii in range(4):
             loss = learn(model[ii], target_model[ii], experience_replay_buffer[ii], gamma, batch_size)
         dt = datetime.now() - t0_2
         
@@ -88,6 +90,7 @@ if __name__ == '__main__':
 
     rospy.init_node('sumo_dqlearn',
                     anonymous=True, log_level=rospy.WARN)
+    episode_counter_pub = rospy.Publisher('/episode_counter', Int16)
 
     # Init OpenAI_ROS ENV
     task_and_robot_environment_name = rospy.get_param(
@@ -130,31 +133,34 @@ if __name__ == '__main__':
     total_t = 0
     start_time = time.time()
     highest_reward = 0
+    epsilon = 1.0
+    epsilon_min = 0.1
+    epsilon_change = (epsilon - epsilon_min) / 500000
     experience_replay_buffer = []
     models = []
     target_models = []
-    for ii in range(3):
+    for ii in range(4):
         experience_replay_buffer.append(ReplayMemory())
         models.append(DQN(
             K = K,
             conv_layer_sizes=conv_layer_sizes,
             hidden_layer_sizes=hidden_layer_sizes,
-            scope="model",
+            scope="model"+str(ii),
             image_size=IM_SIZE
             ))
         target_models.append(DQN(
             K = K,
             conv_layer_sizes=conv_layer_sizes,
             hidden_layer_sizes=hidden_layer_sizes,
-            scope="model",
+            scope="target_model"+str(ii),
             image_size=IM_SIZE
             ))
     image_transformer = ImageTransformer(IM_SIZE)
-    episode_rewards = np.zeros((3,num_episodes))
-    episode_lens = np.zeros((3,num_episodes))
+    episode_rewards = np.zeros((4,num_episodes))
+    episode_lens = np.zeros(num_episodes)
     obs = env.reset()
     with tf.Session() as sess:
-        for ii in range(3):
+        for ii in range(4):
             models[ii].set_session(sess)
             target_models[ii].set_session(sess)
         sess.run(tf.global_variables_initializer())
@@ -163,10 +169,10 @@ if __name__ == '__main__':
         
         for i in range(MIN_EXPERIENCE):
             action = []
-            for ii in range(3):
+            for ii in range(4):
                 action.append(np.random.choice(K))
             obs, reward, done, _ = env.step(action)
-            for ii in range(3):
+            for ii in range(4):
                 obs_small = image_transformer.transform(obs[ii], sess)
                 experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
             if done:
@@ -184,23 +190,26 @@ if __name__ == '__main__':
                     sess,
                     total_t,
                     experience_replay_buffer,
-                    model,
-                    target_model,
+                    models,
+                    target_models,
                     image_transformer,
                     gamma,
                     batch_sz,
                     epsilon,
                     epsilon_change,
                     epsilon_min)
-            episode_rewards[i] = episode_reward
+            last_100_avg = []
+            for ii in range(4):
+                episode_rewards[ii,i] = episode_reward[ii]
+                last_100_avg.append(episode_rewards[ii,max(0,i-100):i+1].mean())
             episode_lens[i] = num_steps_in_episode
-            last_100_avg = episode_rewards[max(0,i-100):i+1].mean()
+            
             print("Episode:", i ,
                   "Duration:", duration,
                   "Num steps:", num_steps_in_episode,
                   "Reward:", episode_reward,
                   "Training time per step:", "%.3f" %time_per_step,
-                  "Avg Reward:", "%.3f"%last_100_avg,
+                  "Avg Reward :", "%.3f"%last_100_avg,
                   "Epsilon:", "%.3f"%epsilon)
             sys.stdout.flush()
         print("Total duration:", datetime.now()-t0)
