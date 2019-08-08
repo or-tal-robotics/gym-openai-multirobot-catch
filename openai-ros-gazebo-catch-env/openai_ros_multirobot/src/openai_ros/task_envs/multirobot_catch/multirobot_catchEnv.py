@@ -1,5 +1,5 @@
 import rospy
-import numpy
+import numpy as np
 from gym import spaces
 from openai_ros.robot_envs import multirobot_catch_env
 from gym.envs.registration import register
@@ -7,6 +7,15 @@ from geometry_msgs.msg import Point
 from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
 from openai_ros.openai_ros_common import ROSLauncher
 import os
+import cv2
+
+def get_image_moment(image):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower = np.array([0,0,0]) 
+    upper = np.array([255,255,10]) 
+    mask = cv2.inRange(hsv, lower, upper) 
+    M = cv2.moments(mask)
+    return M['m00']
 
 
 class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
@@ -42,7 +51,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self.action_space = spaces.Discrete(number_actions)
         
         # We set the reward range, which is not compulsory but here we do it.
-        self.reward_range = (-numpy.inf, numpy.inf)
+        self.reward_range = (-np.inf, np.inf)
         
         
         
@@ -152,15 +161,15 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             self._episode_done = True
             print("To much steps==> GAME OVER!")
         else:
-            prey_position = numpy.array(self.get_prey_position())
+            prey_position = np.array(self.get_prey_position())
             if prey_position[0] > self.max_x or prey_position[0] < self.min_x or prey_position[1] > self.max_y or prey_position[1] < self.min_y:
                     self._episode_done = True
                     self.prey_win = -1
                     print("Prey hit the wall!")
             for ii in range (3):
-                current_position = numpy.array(self.get_robot_position(ii+1))
-                #print (numpy.linalg.norm(current_position - prey_position))
-                if (r_robot + r_prey + p) >= numpy.linalg.norm(current_position - prey_position):
+                current_position = np.array(self.get_robot_position(ii+1))
+                #print (np.linalg.norm(current_position - prey_position))
+                if (r_robot + r_prey + p) >= np.linalg.norm(current_position - prey_position):
                     self.win[ii] = 1
                     self.prey_win = -1
                     print("Robot "+str(ii+1)+" catched the prey!")
@@ -172,6 +181,8 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         return self._episode_done
 
     def _compute_reward(self, observations, done):
+        r_robot = 0.351/2
+        p = 0.1
         reward = [0.0, 0.0, 0.0, 0.0]
         if done:     
             if self.prey_win == -1:
@@ -195,6 +206,32 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
                    
             else:
                 reward = [self.time_penelty,self.time_penelty,self.time_penelty,-self.time_penelty]
+
+
+        else:
+            for ii in range (3):
+                current_position = np.array(self.get_robot_position(ii+1))
+                for jj in range (3):
+                    if ii == jj:
+                        continue
+                    else:
+                        othere_position = np.array(self.get_robot_position(jj+1))
+                        if (2*r_robot + p) >= np.linalg.norm(current_position - othere_position):
+                            img1 = self.get_camera_rgb_image_raw(ii+1)
+                            img2 = self.get_camera_rgb_image_raw(jj+1)
+                            M1 = get_image_moment(img1)
+                            M2 = get_image_moment(img2)
+                            if M1 > M2:
+                                reward[ii] = -1
+                                print("robots "+str(ii+1)+" hit robot "+str(jj+1))
+                                break
+                            elif M2 > M1:
+                                reward[jj] = -1
+                                print("robots "+str(jj+1)+" hit robot "+str(ii+1))
+                                break
+
+                            
+
 
 
 

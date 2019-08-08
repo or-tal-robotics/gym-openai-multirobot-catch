@@ -126,7 +126,7 @@ if __name__ == '__main__':
     running_step = rospy.get_param("/turtlebot2/running_step")
 
     conv_layer_sizes = [(32,8,4), (64,4,2), (64,3,1)]
-    hidden_layer_sizes = [512]
+    hidden_layer_sizes = [512, 256]
     gamma = 0.99
     batch_sz = 32
     num_episodes = 3500

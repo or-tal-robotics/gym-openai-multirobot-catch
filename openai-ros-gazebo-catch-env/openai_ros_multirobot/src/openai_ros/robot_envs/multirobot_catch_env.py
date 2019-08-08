@@ -221,7 +221,7 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
         
     # Methods that the TrainingEnvironment will need.
     # ----------------------------
-    def move_base(self,robot_id, linear_speed, angular_speed,sleep_time = 0.2, epsilon=0.05, update_rate=10, min_laser_distance=-1):
+    def move_base(self,robot_id, linear_speed, angular_speed,sleep_time = 0.1, epsilon=0.05, update_rate=10, min_laser_distance=-1):
         """
         It will move the base based on the linear and angular speeds given.
         It will wait untill those twists are achived reading from the odometry topic.

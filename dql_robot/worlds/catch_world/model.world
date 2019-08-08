@@ -59,10 +59,6 @@
           </box>
         </geometry>
         <material>
-          <script>
-            <uri>file://media/materials/scripts/gazebo.material</uri>
-            <name>Gazebo/Bricks</name>
-          </script>
           <ambient>1 1 1 1</ambient>
         </material>
         <meta>
@@ -88,10 +84,7 @@
           </box>
         </geometry>
         <material>
-          <script>
-            <uri>file://media/materials/scripts/gazebo.material</uri>
-            <name>Gazebo/Bricks</name>
-          </script>
+
           <ambient>1 1 1 1</ambient>
         </material>
         <meta>
@@ -117,10 +110,7 @@
           </box>
         </geometry>
         <material>
-          <script>
-            <uri>file://media/materials/scripts/gazebo.material</uri>
-            <name>Gazebo/Bricks</name>
-          </script>
+
           <ambient>1 1 1 1</ambient>
         </material>
         <meta>
@@ -146,10 +136,7 @@
           </box>
         </geometry>
         <material>
-          <script>
-            <uri>file://media/materials/scripts/gazebo.material</uri>
-            <name>Gazebo/Bricks</name>
-          </script>
+ 
           <ambient>1 1 1 1</ambient>
         </material>
         <meta>
