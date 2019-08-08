@@ -189,6 +189,9 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
                 for ii in range(3):
                     if self.win[ii] == -1:
                         reward[ii] = self.robot_out_of_bounds_penalty
+
+            elif self.prey_win == -1:
+                reward = [0,0,0,-1]
                    
             else:
                 reward = [self.time_penelty,self.time_penelty,self.time_penelty,-self.time_penelty]

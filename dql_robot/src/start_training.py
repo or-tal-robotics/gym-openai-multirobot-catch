@@ -209,7 +209,7 @@ if __name__ == '__main__':
                   "Num steps:", num_steps_in_episode,
                   "Reward:", episode_reward,
                   "Training time per step:", "%.3f" %time_per_step,
-                  "Avg Reward :", "%.3f"%last_100_avg,
+                  "Avg Reward : "+str(last_100_avg),
                   "Epsilon:", "%.3f"%epsilon)
             sys.stdout.flush()
         print("Total duration:", datetime.now()-t0)
