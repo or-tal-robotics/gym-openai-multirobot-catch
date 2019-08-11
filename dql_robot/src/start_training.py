@@ -24,6 +24,18 @@ IM_SIZE = 84
 K = 3
 n_history = 4
 
+def shuffle_models(models, target_models, experience_replay_buffer,):
+    models_temp = []
+    target_models_temp = []
+    experience_replay_buffer_temp = []
+    Nm = len(models)
+    for ii in range(Nm):
+        idx = np.random.randint(0,Nm-ii)
+        models_temp.append(models.pop(idx))
+        target_models_temp.append(target_models.pop(idx))
+        experience_replay_buffer_temp.append(experience_replay_buffer.pop(idx))
+    return models_temp, target_models_temp, experience_replay_buffer_temp
+
 def play_ones(env,
               sess,
               total_t,
@@ -125,8 +137,7 @@ if __name__ == '__main__':
 
     running_step = rospy.get_param("/turtlebot2/running_step")
 
-    conv_layer_sizes = [(32,8,4), (64,4,2), (64,3,1)]
-    hidden_layer_sizes = [512, 256]
+    
     gamma = 0.99
     batch_sz = 32
     num_episodes = 3500
@@ -143,15 +154,11 @@ if __name__ == '__main__':
         experience_replay_buffer.append(ReplayMemory())
         models.append(DQN(
             K = K,
-            conv_layer_sizes=conv_layer_sizes,
-            hidden_layer_sizes=hidden_layer_sizes,
             scope="model"+str(ii),
             image_size=IM_SIZE
             ))
         target_models.append(DQN(
             K = K,
-            conv_layer_sizes=conv_layer_sizes,
-            hidden_layer_sizes=hidden_layer_sizes,
             scope="target_model"+str(ii),
             image_size=IM_SIZE
             ))
@@ -203,7 +210,7 @@ if __name__ == '__main__':
                 episode_rewards[ii,i] = episode_reward[ii]
                 last_100_avg.append(episode_rewards[ii,max(0,i-100):i+1].mean())
             episode_lens[i] = num_steps_in_episode
-            
+            models[0:3], target_models[0:3], experience_replay_buffer[0:3] = shuffle_models(models[0:3], target_models[0:3], experience_replay_buffer[0:3])
             print("Episode:", i ,
                   "Duration:", duration,
                   "Num steps:", num_steps_in_episode,

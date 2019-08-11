@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 class DQN():
-    def __init__(self, K, conv_layer_sizes, hidden_layer_sizes, scope, image_size):
+    def __init__(self, K, scope, image_size):
         self.K = K
         self.scope = scope
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
@@ -10,14 +10,16 @@ class DQN():
             self.G = tf.placeholder(tf.float32, shape=(None,), name='G')
             self.actions = tf.placeholder(tf.int32, shape=(None,), name='actions')
             Z = self.X / 255.0
-            for num_output_filters, filtersz, poolsz in conv_layer_sizes:
-                Z = tf.contrib.layers.conv2d(Z, num_output_filters, filtersz, poolsz, activation_fn=tf.nn.relu)
-
+            Z = tf.layers.conv2d(Z, 32, [8,8], activation=tf.nn.relu)
+            Z = tf.layers.max_pooling2d(Z,[2,2],2)
+            Z = tf.layers.conv2d(Z, 64, [4,4], activation=tf.nn.relu)
+            Z = tf.layers.max_pooling2d(Z,[2,2],2)
+            Z = tf.layers.conv2d(Z, 64, [3,3], activation=tf.nn.relu)
+            Z = tf.layers.max_pooling2d(Z,[2,2],2)
             Z = tf.contrib.layers.flatten(Z)
-            for M in hidden_layer_sizes:
-                Z = tf.contrib.layers.fully_connected(Z,M)
-                Z = tf.contrib.layers.dropout(Z,0.3)
-            self.predict_op = tf.contrib.layers.fully_connected(Z,K)
+            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu)
+
+            self.predict_op = tf.layers.dense(Z,K)
             selected_action_value = tf.reduce_sum(self.predict_op * tf.one_hot(self.actions,K), reduction_indices=[1])
             
             cost = tf.reduce_mean(tf.losses.huber_loss(self.G, selected_action_value))

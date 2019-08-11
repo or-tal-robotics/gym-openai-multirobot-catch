@@ -73,6 +73,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self.cooperative_catch_reward = rospy.get_param("/turtlebot2/cooperative_catch_reward")
         self.time_penelty = rospy.get_param("/turtlebot2/time_penelty")
         self.robot_out_of_bounds_penalty = rospy.get_param("/turtlebot2/robot_out_of_bounds_penalty")
+        self.robot_hit_robot_penalty = rospy.get_param("/turtlebot2/robot_hit_robot_penalty")
         self.max_x = rospy.get_param("/turtlebot2/max_x") 
         self.max_y = rospy.get_param("/turtlebot2/max_y") 
         self.min_x = rospy.get_param("/turtlebot2/min_x") 
@@ -119,7 +120,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         
         rospy.logdebug("Start Set Action ==>"+str(action))
         # We convert the actions to speed movements to send to the parent class CubeSingleDiskEnv
-        for ii in range(len(action)):
+        for ii in range(3):
             if action[ii] == 0: #FORWARD
                 linear_speed = self.linear_forward_speed
                 angular_speed = 0.0
@@ -136,8 +137,22 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             
             # We tell TurtleBot2 the linear and angular speed to set to execute
             self.move_base(ii+1,linear_speed, angular_speed, epsilon=0.05, update_rate=10)
-            
-            rospy.logdebug("END Set Action ==>"+str(action))
+        if action[3] == 0: #FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = 0.0
+            self.last_action = "FORWARDS"
+        elif action[3] == 1: #LEFT
+            linear_speed = 0.0
+            angular_speed = 2*self.angular_speed
+            self.last_action = "TURN_LEFT"
+        elif action[3] == 2: #RIGHT
+            linear_speed = 0.0
+            angular_speed = -2*self.angular_speed
+            self.last_action = "TURN_RIGHT"
+
+        
+        # We tell TurtleBot2 the linear and angular speed to set to execute
+        self.move_base(4,linear_speed, angular_speed, epsilon=0.05, update_rate=10)    
         time.sleep(0.2)
 
     def _get_obs(self):
@@ -224,11 +239,11 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
                             M1 = get_image_moment(img1)
                             M2 = get_image_moment(img2)
                             if M1 > M2:
-                                reward[ii] = -1
+                                reward[ii] = self.robot_hit_robot_penalty
                                 print("robots "+str(ii+1)+" hit robot "+str(jj+1))
                                 break
                             elif M2 > M1:
-                                reward[jj] = -1
+                                reward[jj] = self.robot_hit_robot_penalty
                                 print("robots "+str(jj+1)+" hit robot "+str(ii+1))
                                 break
 
