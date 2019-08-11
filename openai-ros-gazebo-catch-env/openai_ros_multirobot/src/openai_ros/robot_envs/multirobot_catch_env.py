@@ -1,4 +1,4 @@
-import numpy
+import numpy as np 
 import rospy
 import time
 from openai_ros import robot_gazebo_env
@@ -15,7 +15,6 @@ from cv_bridge import CvBridge, CvBridgeError
 import cv2
 from sensor_msgs.msg import Image
 
-
 class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
     """Superclass for all CubeSingleDisk environments.
     """
@@ -28,6 +27,7 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
         # None in this case
 
         # We launch the ROSlaunch that spawns the robot into the world
+        
         ROSLauncher(rospackage_name="dql_robot",
                     launch_file_name="put_robots_in_world.launch",
                     ros_ws_abspath=ros_ws_abspath)
@@ -244,7 +244,7 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
             self._cmd_vel_pub3.publish(cmd_vel_value)
         if robot_id == 4:
             self._cmd_vel_pub_prey.publish(cmd_vel_value)
-        time.sleep(sleep_time)
+        
 
 
     def _move_prey(self, linear_speed, angular_speed,sleep_time = 0.2):
@@ -256,14 +256,14 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
 
     def _prey_step(self):
         if self.prey_position[0] > 4.5 or self.prey_position[0]<-4.5 or self.prey_position[1] > 4.5 or self.prey_position[1]<-4.5:
-            linear_speed = numpy.random.uniform(-0.2,0.0)
-            angular_speed = numpy.random.uniform(-0.2,0.2)
+            linear_speed = np.random.uniform(-0.2,0.0)
+            angular_speed = np.random.uniform(-0.2,0.2)
         elif self.prey_position[0] > 4.0 or self.prey_position[0]<-4.0 or self.prey_position[1] > 4.0 or self.prey_position[1]<-4.0:
-            linear_speed = numpy.random.uniform(0.0,0.1)
-            angular_speed = numpy.random.uniform(0.2,0.5)
+            linear_speed = np.random.uniform(0.0,0.1)
+            angular_speed = np.random.uniform(0.2,0.5)
         else:
-            linear_speed = numpy.random.uniform(0.0,0.5)
-            angular_speed = numpy.random.uniform(-0.5,0.5)
+            linear_speed = np.random.uniform(0.0,0.5)
+            angular_speed = np.random.uniform(-0.5,0.5)
         self._move_prey(linear_speed, angular_speed, sleep_time=0.5)
                         
         

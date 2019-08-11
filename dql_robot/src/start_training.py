@@ -213,7 +213,6 @@ if __name__ == '__main__':
                   "Epsilon:", "%.3f"%epsilon)
             sys.stdout.flush()
         print("Total duration:", datetime.now()-t0)
-        model.save()
         
         y = smooth(episode_rewards)
         plt.plot(episode_rewards, label='orig')

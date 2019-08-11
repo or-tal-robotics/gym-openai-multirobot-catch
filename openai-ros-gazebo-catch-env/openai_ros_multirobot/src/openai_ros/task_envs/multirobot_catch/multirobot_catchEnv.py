@@ -8,6 +8,7 @@ from openai_ros.task_envs.task_commons import LoadYamlFileParamsTest
 from openai_ros.openai_ros_common import ROSLauncher
 import os
 import cv2
+import time
 
 def get_image_moment(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -137,6 +138,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             self.move_base(ii+1,linear_speed, angular_speed, epsilon=0.05, update_rate=10)
             
             rospy.logdebug("END Set Action ==>"+str(action))
+        time.sleep(0.2)
 
     def _get_obs(self):
         """

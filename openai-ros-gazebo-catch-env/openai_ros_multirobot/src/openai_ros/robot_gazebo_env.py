@@ -1,5 +1,5 @@
 import rospy, tf
-import numpy
+import numpy as np
 import gym
 from gym.utils import seeding
 from .gazebo_connection import GazeboConnection
@@ -8,6 +8,24 @@ from gazebo_msgs.srv import DeleteModel, SpawnModel
 from geometry_msgs.msg import Quaternion,Pose, Point
 #https://bitbucket.org/theconstructcore/theconstruct_msgs/src/master/msg/RLExperimentInfo.msg
 from openai_ros.msg import RLExperimentInfo
+from modify_launchers import modify_launch
+from openai_ros.openai_ros_common import ROSLauncher
+
+
+def create_random_launch_files():
+    initial_pose = np.zeros((4,2))
+    initial_pose[0,:] = np.random.uniform(-4,4,2)
+    ii = 1
+    while ii <= 3:
+        pose = np.random.uniform(-4,4,2)
+        norms = np.linalg.norm(initial_pose-pose)
+        if np.sum(norms<0.4):
+            continue
+        else:
+            initial_pose[ii,:] = pose
+            ii += 1
+            #print(initial_pose)
+    modify_launch(initial_pose)
 
 # https://github.com/openai/gym/blob/master/gym/core.py
 class RobotGazeboEnv(gym.Env):
@@ -65,11 +83,14 @@ class RobotGazeboEnv(gym.Env):
         return obs, reward, done, info
 
     def reset(self):
+        
+       
         self.win = [0,0,0]
         self.prey_win = 0
         self.step_number = 0
         rospy.logdebug("Reseting RobotGazeboEnvironment")
         self._reset_sim()
+        
         self._init_env_variables()
         self._update_episode()
         obs = self._get_obs()
@@ -125,13 +146,13 @@ class RobotGazeboEnv(gym.Env):
 
             with open("/home/lab/openai_ws/src/dql_sumo/gazebo_sumo/spwan_node/ball/ball.sdf", "r") as f:
                 product_xml = f.read()
-            rx = numpy.random.uniform(low=-2.4, high=2.4) 
+            rx = np.random.uniform(low=-2.4, high=2.4) 
             if rx < 1.0 and rx > -1.0:
-                ry = numpy.random.uniform(low=1.0, high=2.4)*(-1)**numpy.random.randint(0,2) 
+                ry = np.random.uniform(low=1.0, high=2.4)*(-1)**np.random.randint(0,2) 
             else:
-                ry = numpy.random.uniform(low=-2.4, high=2.4) 
+                ry = np.random.uniform(low=-2.4, high=2.4) 
 
-            random_pose = numpy.array([rx,ry])
+            random_pose = np.array([rx,ry])
 
             orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,0))
             item_name   =   "ball"
@@ -142,7 +163,7 @@ class RobotGazeboEnv(gym.Env):
     def _del_model(self):
         rospy.wait_for_service("gazebo/delete_model")
         delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-        item_name = "ball"
+        item_name = "prey"
         #print("Deleting model:%s", item_name)
         delete_model(item_name)
                 
@@ -162,7 +183,11 @@ class RobotGazeboEnv(gym.Env):
             self.gazebo.resetSim()
             self.gazebo.unpauseSim()
             #self._spwan()
-            
+            #ros_ws_abspath = rospy.get_param("/turtlebot2/ros_ws_abspath", None)
+            #create_random_launch_files()
+            #ROSLauncher(rospackage_name="dql_robot",
+                #launch_file_name="put_prey_in_world.launch",
+                #ros_ws_abspath=ros_ws_abspath)
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
             self._set_init_pose()
@@ -178,6 +203,11 @@ class RobotGazeboEnv(gym.Env):
             self.gazebo.resetSim()
             self.gazebo.unpauseSim()
             #self._spwan()
+            #ros_ws_abspath = rospy.get_param("/turtlebot2/ros_ws_abspath", None)
+            #create_random_launch_files()
+            #ROSLauncher(rospackage_name="dql_robot",
+                #launch_file_name="put_prey_in_world.launch",
+                #ros_ws_abspath=ros_ws_abspath)
             self._check_all_systems_ready()
             self._set_init_pose()
             self.gazebo.pauseSim()
