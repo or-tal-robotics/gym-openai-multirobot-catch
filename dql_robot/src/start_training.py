@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # Set the logging system
     rospack = rospkg.RosPack()
-    pkg_path = rospack.get_path('gazebo_sumo')
+    pkg_path = rospack.get_path('dql_robot')
     #outdir = pkg_path + '/training_results'
     #env = wrappers.Monitor(env, outdir, force=True)
     rospy.loginfo("Monitor Wrapper started")

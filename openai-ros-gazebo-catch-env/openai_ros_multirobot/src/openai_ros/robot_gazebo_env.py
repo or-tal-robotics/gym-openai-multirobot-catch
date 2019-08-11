@@ -7,25 +7,11 @@ from .controllers_connection import ControllersConnection
 from gazebo_msgs.srv import DeleteModel, SpawnModel
 from geometry_msgs.msg import Quaternion,Pose, Point
 #https://bitbucket.org/theconstructcore/theconstruct_msgs/src/master/msg/RLExperimentInfo.msg
-from openai_ros.msg import RLExperimentInfo
-from modify_launchers import modify_launch
+from openai_ros_multirobot.msg import RLExperimentInfo
 from openai_ros.openai_ros_common import ROSLauncher
 
 
-def create_random_launch_files():
-    initial_pose = np.zeros((4,2))
-    initial_pose[0,:] = np.random.uniform(-4,4,2)
-    ii = 1
-    while ii <= 3:
-        pose = np.random.uniform(-4,4,2)
-        norms = np.linalg.norm(initial_pose-pose)
-        if np.sum(norms<0.4):
-            continue
-        else:
-            initial_pose[ii,:] = pose
-            ii += 1
-            #print(initial_pose)
-    modify_launch(initial_pose)
+
 
 # https://github.com/openai/gym/blob/master/gym/core.py
 class RobotGazeboEnv(gym.Env):
@@ -144,7 +130,7 @@ class RobotGazeboEnv(gym.Env):
             rospy.wait_for_service("gazebo/spawn_sdf_model")
             self.spawn_model = rospy.ServiceProxy("gazebo/spawn_sdf_model", SpawnModel)
 
-            with open("/home/lab/openai_ws/src/dql_sumo/gazebo_sumo/spwan_node/ball/ball.sdf", "r") as f:
+            with open("/home/or/openai_ws/src/dql_sumo/gazebo_sumo/spwan_node/ball/ball.sdf", "r") as f:
                 product_xml = f.read()
             rx = np.random.uniform(low=-2.4, high=2.4) 
             if rx < 1.0 and rx > -1.0:
