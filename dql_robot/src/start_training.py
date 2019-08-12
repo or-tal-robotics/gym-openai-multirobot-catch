@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
-TARGET_UPDATE_PERIOD = 10000
+TARGET_UPDATE_PERIOD = 1000
 IM_SIZE = 84
 K = 5
 n_history = 4
@@ -93,7 +93,7 @@ def play_ones(env,
             episode_reward[ii] += reward[ii]
         
             experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
-
+        episode_reward[3] += reward[3]
         obs_small1 = image_transformer.transform(obs[3][0], sess)
         obs_small2 = image_transformer.transform(obs[3][1], sess)
         next_state_prey1, next_state_prey1 = update_state_multicamera(state_prey1,state_prey2, obs_small1, obs_small2)

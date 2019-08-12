@@ -13,8 +13,8 @@
   <link name="base_link">
   <inertial>
     <origin xyz="0 0 0.125" />
-    <mass value="5" />
-    <inertia  ixx="0.1" ixy="0.0"  ixz="0.0"  iyy="0.1"  iyz="0.0"  izz="0.1" />
+    <mass value="15" />
+    <inertia  ixx="1.1" ixy="0.0"  ixz="0.0"  iyy="1.1"  iyz="0.0"  izz="1.1" />
   </inertial>
   <visual>
     <origin xyz="0 0 0.125"/>
@@ -378,7 +378,7 @@
     <rightJoint>base_link_right_wheel</rightJoint>
     <wheelSeparation>0.35</wheelSeparation>
     <wheelDiameter>0.15</wheelDiameter>
-    <torque>0.41</torque>
+    <torque>1.41</torque>
     <commandTopic>cmd_vel</commandTopic>
     <odometryTopic>odom</odometryTopic>
     <odometryFrame>odom</odometryFrame>
