@@ -16,12 +16,13 @@ import tensorflow as tf
 from datetime import datetime
 import sys
 from std_msgs.msg import Int16
+import matplotlib.pyplot as plt
 
 MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
 TARGET_UPDATE_PERIOD = 10000
 IM_SIZE = 84
-K = 3
+K = 5
 n_history = 4
 
 def shuffle_models(models, target_models, experience_replay_buffer,):
@@ -157,7 +158,7 @@ if __name__ == '__main__':
     
     gamma = 0.99
     batch_sz = 32
-    num_episodes = 3500
+    num_episodes = 2000
     total_t = 0
     start_time = time.time()
     highest_reward = 0
@@ -260,15 +261,19 @@ if __name__ == '__main__':
             sys.stdout.flush()
         print("Total duration:", datetime.now()-t0)
         
-        y = smooth(episode_rewards)
-        plt.plot(episode_rewards, label='orig')
-        plt.plot(y, label='smoothed')
+        y1 = smooth(episode_rewards[0,:])
+        y2 = smooth(episode_rewards[1,:])
+        y3 = smooth(episode_rewards[2,:])
+        y4 = smooth(episode_rewards[3,:])
+        plt.plot(y1, label='robot 1')
+        plt.plot(y2, label='robot 2')
+        plt.plot(y3, label='robot 3')
+        plt.plot(y4, label='prey')
+        plt.xlabel("Episodes")
+        plt.ylabel("Reward")
         plt.legend()
         plt.show()
-        env.close()
-        
-
-    
+        env.close()    
 
 
 

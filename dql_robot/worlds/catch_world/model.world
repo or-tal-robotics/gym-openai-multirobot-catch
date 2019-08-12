@@ -236,7 +236,7 @@
   </model>
     <model name='camera'>
       <static>true</static>
-      <pose>-1 0 13 0 1.47 0</pose>
+      <pose>-1 0 17 0 1.47 0</pose>
       <link name='link'>
         <visual name='visual'>
           <geometry>

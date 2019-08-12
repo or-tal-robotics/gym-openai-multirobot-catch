@@ -78,14 +78,14 @@
 
   <joint name="camera_joint1" type="fixed">
     <axis xyz="0 1 0" />
-    <origin xyz="0.23 0 0.25" rpy="0 0 0"/>
+    <origin xyz="0.2 0 0.25" rpy="0 0 0"/>
     <parent link="base_link"/>
     <child link="camera_link1"/>
   </joint>
 
   <joint name="camera_joint2" type="fixed">
     <axis xyz="0 1 0" />
-    <origin xyz="-0.23 0 0.25" rpy="0 0 3.1415"/>
+    <origin xyz="-0.2 0 0.25" rpy="0 0 3.1415"/>
     <parent link="base_link"/>
     <child link="camera_link2"/>
   </joint>
@@ -207,7 +207,7 @@
     </joint>
   </transmission>
 
-  <link name="back_wheel">
+  <link name="back_wheel1">
   <inertial>
     <origin rpy="1.5707963267948966 0 0" xyz="0 0 0" />
     <mass value="0.1" />
@@ -228,22 +228,62 @@
       <surface>
         <friction>
           <ode>
-            <mu>0.01</mu>
-            <mu2>0.01</mu2>
+            <mu>0.0001</mu>
+            <mu2>0.0001</mu2>
           </ode>
         </friction>
       </surface>
   </link>
 
-  <gazebo reference="back_wheel">
+  <link name="back_wheel2">
+  <inertial>
+    <origin rpy="1.5707963267948966 0 0" xyz="0 0 0" />
+    <mass value="0.1" />
+    <inertia  ixx="0.01" ixy="0.0"  ixz="0.0"  iyy="0.01"  iyz="0.0"  izz="0.01" />
+  </inertial>
+  <visual>
+    <origin rpy="1.5707963267948966 0 0" xyz="0 0 0"/>
+    <geometry>
+      <sphere length="0.1" radius="0.025"/>
+    </geometry>
+  </visual>
+  <collision>
+    <origin rpy="1.5707963267948966 0 0" xyz="0 0 0"/>
+    <geometry>
+      <sphere length="0.1" radius="0.025"/>
+    </geometry>
+  </collision>
+      <surface>
+        <friction>
+          <ode>
+            <mu>0.0001</mu>
+            <mu2>0.0001</mu2>
+          </ode>
+        </friction>
+      </surface>
+  </link>
+
+  <gazebo reference="back_wheel1">
     <material>Gazebo/White</material>
   </gazebo>
 
-  <joint name="base_link_back_wheel" type="continuous">
+  <gazebo reference="back_wheel2">
+    <material>Gazebo/White</material>
+  </gazebo>
+
+
+  <joint name="base_link_back_wheel1" type="continuous">
     <parent link="base_link"/>
-    <child link="back_wheel"/>
+    <child link="back_wheel1"/>
     <axis xyz="0 1 1"/>
-    <origin xyz="-0.15 0 0.025"/>
+    <origin xyz="-0.15 0.1 0.025"/>
+  </joint>
+
+  <joint name="base_link_back_wheel2" type="continuous">
+    <parent link="base_link"/>
+    <child link="back_wheel2"/>
+    <axis xyz="0 1 1"/>
+    <origin xyz="-0.15 -0.1 0.025"/>
   </joint>
 
   <!--link name="right_back_wheel">
@@ -338,7 +378,7 @@
     <rightJoint>base_link_right_wheel</rightJoint>
     <wheelSeparation>0.35</wheelSeparation>
     <wheelDiameter>0.15</wheelDiameter>
-    <torque>1.41</torque>
+    <torque>0.41</torque>
     <commandTopic>cmd_vel</commandTopic>
     <odometryTopic>odom</odometryTopic>
     <odometryFrame>odom</odometryFrame>
