@@ -9,8 +9,8 @@ import rospy
 import rospkg
 from openai_ros.openai_ros_common import StartOpenAI_ROS_Environment
 from imagetranformer import ImageTransformer
-from rl_common import ReplayMemory, update_state, learn
-from dqn_model import DQN
+from rl_common import ReplayMemory,ReplayMemory_multicamera, update_state,update_state_multicamera, learn, learn_multicamera
+from dqn_model import DQN, DQN_multicamera
 import cv2
 import tensorflow as tf
 from datetime import datetime
@@ -37,24 +37,33 @@ def shuffle_models(models, target_models, experience_replay_buffer,):
     return models_temp, target_models_temp, experience_replay_buffer_temp
 
 def play_ones(env,
-              sess,
-              total_t,
-              experience_replay_buffer,
-              model,
-              target_model,
-              image_transformer,
-              gamma,
-              batch_size,
-              epsilon,
-              epsilon_change,
-              epsilon_min):
+                sess,
+                total_t,
+                experience_replay_buffer,
+                experience_replay_buffer_prey,
+                models,
+                prey_model,
+                target_models,
+                target_models_prey,
+                image_transformer,
+                gamma,
+                batch_sz,
+                epsilon,
+                epsilon_change,
+                epsilon_min):
     
     t0 = datetime.now()
     obs = env.reset()
     state = []
-    for ii in range(4):
+    
+    for ii in range(3):
         obs_small = image_transformer.transform(obs[ii], sess)
         state.append(np.stack([obs_small] * n_history, axis = 2))
+
+    obs_small1 = image_transformer.transform(obs[3][0], sess)
+    obs_small2 = image_transformer.transform(obs[3][1], sess)
+    state_prey1 = np.stack([obs_small1] * n_history, axis = 2)
+    state_prey2 = np.stack([obs_small2] * n_history, axis = 2)
     loss = None
     
     total_time_training = 0
@@ -66,24 +75,32 @@ def play_ones(env,
     while not done:
         
         if total_t % TARGET_UPDATE_PERIOD == 0:
-            for ii in range(4):
-                target_model[ii].copy_from(model[ii])
+            for ii in range(3):
+                target_models[ii].copy_from(models[ii])
+            target_models_prey.copy_from(prey_model)
             print("model is been copied!")
         action = []
-        for ii in range(4):
-            action.append(model[ii].sample_action(state[ii], epsilon))
+        for ii in range(3):
+            action.append(models[ii].sample_action(state[ii], epsilon))
+        action.append(prey_model.sample_action(state_prey1, state_prey2, epsilon))
         obs, reward, done, _ = env.step(action)
         next_state = []
-        for ii in range(4):
+        for ii in range(3):
             obs_small = image_transformer.transform(obs[ii], sess)
             next_state.append(update_state(state[ii], obs_small))
         
             episode_reward[ii] += reward[ii]
         
             experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
+
+        obs_small1 = image_transformer.transform(obs[3][0], sess)
+        obs_small2 = image_transformer.transform(obs[3][1], sess)
+        next_state_prey1, next_state_prey1 = update_state_multicamera(state_prey1,state_prey2, obs_small1, obs_small2)
+        experience_replay_buffer_prey.add_experience(action[3], obs_small1,obs_small2, reward[3], done)
         t0_2 = datetime.now()
-        for ii in range(4):
-            loss = learn(model[ii], target_model[ii], experience_replay_buffer[ii], gamma, batch_size)
+        for ii in range(3):
+            loss = learn(models[ii], target_models[ii], experience_replay_buffer[ii], gamma, batch_sz)
+        loss = learn_multicamera(prey_model, target_models_prey, experience_replay_buffer_prey, gamma, batch_sz)
         dt = datetime.now() - t0_2
         
         total_time_training += dt.total_seconds()
@@ -150,7 +167,7 @@ if __name__ == '__main__':
     experience_replay_buffer = []
     models = []
     target_models = []
-    for ii in range(4):
+    for ii in range(3):
         experience_replay_buffer.append(ReplayMemory())
         models.append(DQN(
             K = K,
@@ -162,14 +179,30 @@ if __name__ == '__main__':
             scope="target_model"+str(ii),
             image_size=IM_SIZE
             ))
+    experience_replay_buffer_prey = ReplayMemory_multicamera()
+    prey_model = DQN_multicamera(
+        K = K,
+        scope="prey_model",
+        image_size1=IM_SIZE,
+        image_size2=IM_SIZE
+        )
+    target_models_prey = DQN_multicamera(
+        K = K,
+        scope="prey_target_model",
+        image_size1=IM_SIZE,
+        image_size2=IM_SIZE
+        )
     image_transformer = ImageTransformer(IM_SIZE)
     episode_rewards = np.zeros((4,num_episodes))
     episode_lens = np.zeros(num_episodes)
     obs = env.reset()
     with tf.Session() as sess:
-        for ii in range(4):
+        for ii in range(3):
             models[ii].set_session(sess)
             target_models[ii].set_session(sess)
+
+        prey_model.set_session(sess)
+        target_models_prey.set_session(sess)
         sess.run(tf.global_variables_initializer())
         print("Initializing experience replay buffer...")
         obs = env.reset()
@@ -179,9 +212,12 @@ if __name__ == '__main__':
             for ii in range(4):
                 action.append(np.random.choice(K))
             obs, reward, done, _ = env.step(action)
-            for ii in range(4):
+            for ii in range(3):
                 obs_small = image_transformer.transform(obs[ii], sess)
                 experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
+            obs_small1 = image_transformer.transform(obs[3][0], sess)
+            obs_small2 = image_transformer.transform(obs[3][1], sess)
+            experience_replay_buffer_prey.add_experience(action[3],obs_small1, obs_small2, reward[3], done)
             if done:
                 obs = env.reset()
 
@@ -197,8 +233,11 @@ if __name__ == '__main__':
                     sess,
                     total_t,
                     experience_replay_buffer,
+                    experience_replay_buffer_prey,
                     models,
+                    prey_model,
                     target_models,
+                    target_models_prey,
                     image_transformer,
                     gamma,
                     batch_sz,
