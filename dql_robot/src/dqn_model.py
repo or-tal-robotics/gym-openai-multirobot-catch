@@ -22,13 +22,11 @@ class DQN():
             Z = tf.layers.max_pooling2d(Z,[2,2],2)
             Z = tf.contrib.layers.flatten(Z)
             #Z = tf.layers.batch_normalization(Z, training=self.is_training)
-            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu, kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=0.1))
+            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu)
 
-            self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu, kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=0.1))
+            self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu)
             selected_action_value = tf.reduce_sum(self.predict_op * tf.one_hot(self.actions,K), reduction_indices=[1])
-            l2_loss = tf.losses.get_regularization_loss()
             cost = tf.reduce_mean(tf.losses.huber_loss(self.G, selected_action_value))
-            cost += l2_loss
             self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             self.train_op = tf.train.AdamOptimizer(5e-6).minimize(cost)
             self.cost = cost
@@ -118,13 +116,11 @@ class DQN_multicamera():
             
             Z = tf.concat([Z1,Z2], axis = 1)
             #Z = tf.layers.batch_normalization(Z, training=self.is_training)
-            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu, kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=0.1))
-            self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu, kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=0.1))
+            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu)
+            self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu)
             selected_action_value = tf.reduce_sum(self.predict_op * tf.one_hot(self.actions,K), reduction_indices=[1])
             
-            l2_loss = tf.losses.get_regularization_loss()
             cost = tf.reduce_mean(tf.losses.huber_loss(self.G, selected_action_value))
-            cost += l2_loss
             self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
             self.train_op = tf.train.AdamOptimizer(5e-6).minimize(cost)
             self.cost = cost
