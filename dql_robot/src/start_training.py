@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
-TARGET_UPDATE_PERIOD = 1000
+TARGET_UPDATE_PERIOD = 10000
 IM_SIZE = 84
 K = 5
 n_history = 4
