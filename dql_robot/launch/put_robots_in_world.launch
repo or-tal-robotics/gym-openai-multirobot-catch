@@ -8,7 +8,7 @@
 
   <!-- push table_description to factory and spawn robot in gazebo -->
   <node name="spawn_prey_model" pkg="gazebo_ros" type="spawn_model"
-        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model prey -y 4 -Y -1.7"/>
+        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model prey -x -4 -y -4 -Y 1.7"/>
   
 <node pkg="robot_state_publisher" name="publisher_state_pub_prey" type="robot_state_publisher">
 <param name="publish_frequency" type="double" value="30.0" />
@@ -21,7 +21,7 @@
 
   <!-- push table_description to factory and spawn robot in gazebo -->
   <node name="spawn_prey_model" pkg="gazebo_ros" type="spawn_model"
-        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model predator -y -4 -Y -1.7"/>
+        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model predator -y 4 -Y -1.7"/>
   
 <node pkg="robot_state_publisher" name="publisher_state_pub_predator" type="robot_state_publisher">
 <param name="publish_frequency" type="double" value="30.0" />

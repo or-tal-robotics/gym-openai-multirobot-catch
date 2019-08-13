@@ -27,7 +27,7 @@ class RobotGazeboEnv(gym.Env):
         self.step_number = 0
         # Set up ROS related variables
         self.episode_num = 0
-        self.cumulated_episode_reward = [0.0,0.0,0.0]
+        self.cumulated_episode_reward = [0.0,0.0]
         self.reward_pub = rospy.Publisher('/openai/reward', RLExperimentInfo, queue_size=1)
         rospy.logdebug("END init RobotGazeboEnv")
 
@@ -61,7 +61,7 @@ class RobotGazeboEnv(gym.Env):
         done = self._is_done(obs)
         info = {}
         reward = self._compute_reward(obs, done)
-        for ii in range(3):
+        for ii in range(2):
             self.cumulated_episode_reward[ii] = self.cumulated_episode_reward[ii]+ reward[ii]
         self.step_number += 1
         rospy.logdebug("END STEP OpenAIROS")
@@ -176,7 +176,6 @@ class RobotGazeboEnv(gym.Env):
                 #ros_ws_abspath=ros_ws_abspath)
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
-            self._set_init_pose()
             self.gazebo.pauseSim()
 
         else:
@@ -195,16 +194,12 @@ class RobotGazeboEnv(gym.Env):
                 #launch_file_name="put_prey_in_world.launch",
                 #ros_ws_abspath=ros_ws_abspath)
             self._check_all_systems_ready()
-            self._set_init_pose()
             self.gazebo.pauseSim()
 
         rospy.logdebug("RESET SIM END")
         return True
 
-    def _set_init_pose(self):
-        """Sets the Robot in its init pose
-        """
-        raise NotImplementedError()
+   
 
     def _check_all_systems_ready(self):
         """

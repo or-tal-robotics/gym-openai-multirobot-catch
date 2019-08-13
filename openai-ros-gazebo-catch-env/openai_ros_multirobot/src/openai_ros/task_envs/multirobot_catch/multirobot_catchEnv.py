@@ -77,26 +77,18 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self.max_x = rospy.get_param("/turtlebot2/max_x") 
         self.max_y = rospy.get_param("/turtlebot2/max_y") 
         self.min_x = rospy.get_param("/turtlebot2/min_x") 
-        self.min_y = rospy.get_param("/turtlebot2/min_y") 
+        self.min_y = rospy.get_param("/turtlebot2/min_y")
+        self.goal_max_x = rospy.get_param("/turtlebot2/goal_max_x") 
+        self.goal_max_y = rospy.get_param("/turtlebot2/goal_max_y") 
+        self.goal_min_x = rospy.get_param("/turtlebot2/goal_min_x") 
+        self.goal_min_y = rospy.get_param("/turtlebot2/goal_min_y")  
+
 
         self.cumulated_steps = 0.0
         
-        self.init_linear_forward_speed = 0.0
-        self.init_linear_turn_speed = 0.0
-        self.win = [0,0,0]
+        
+        self.predator_win = 0
         self.prey_win = 0
-
-    def _set_init_pose(self):
-        """Sets the Robot in its init pose
-        """
-        for ii in range(1,4):
-            self.move_base(ii, self.init_linear_forward_speed,
-                            self.init_linear_turn_speed,
-                            sleep_time=0,
-                            epsilon=0.05,
-                            update_rate=10)
-
-        return True
 
     def _init_env_variables(self):
         """
@@ -108,7 +100,8 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self.cumulated_reward = 0.0
         # Set to false Done, because its calculated asyncronously
         self._episode_done = False
-        
+        self.predator_win = 0
+        self.prey_win = 0
         camera_data = self.get_camera_rgb_image_raw(1)
 
     def _set_action(self, action):
@@ -120,55 +113,49 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         
         rospy.logdebug("Start Set Action ==>"+str(action))
         # We convert the actions to speed movements to send to the parent class CubeSingleDiskEnv
-        for ii in range(3):
-            if action[ii] == 0: #FORWARD
-                linear_speed = self.linear_forward_speed
-                angular_speed = 0.0
-                self.last_action = "FORWARDS"
-            elif action[ii] == 1: #LEFT
-                linear_speed = self.linear_turn_speed
-                angular_speed = self.angular_speed
-                self.last_action = "TURN_LEFT"
-            elif action[ii] == 2: #RIGHT
-                linear_speed = self.linear_turn_speed
-                angular_speed = -1*self.angular_speed
-                self.last_action = "TURN_RIGHT"
-            elif action[ii] == 3: #RIGHT FORWARD
-                linear_speed = self.linear_forward_speed
-                angular_speed = -1*self.angular_speed
-                self.last_action = "FORWARDS_TURN_RIGHT"
-            elif action[ii] == 4: #LEFT FORWARD
-                linear_speed = self.linear_forward_speed
-                angular_speed = self.angular_speed
-                self.last_action = "FORWARDS_TURN_LEFT"
-
-            
-            # We tell TurtleBot2 the linear and angular speed to set to execute
-            self.move_base(ii+1,linear_speed, angular_speed, epsilon=0.05, update_rate=10)
-        if action[3] == 0: #FORWARD
+        if action[0] == 0: #FORWARD
             linear_speed = self.linear_forward_speed
             angular_speed = 0.0
             self.last_action = "FORWARDS"
-        elif action[3] == 1: #LEFT
+        elif action[0] == 1: #LEFT
             linear_speed = 0.0
-            angular_speed = 2*self.angular_speed
+            angular_speed = self.angular_speed
             self.last_action = "TURN_LEFT"
-        elif action[3] == 2: #RIGHT
+        elif action[0] == 2: #RIGHT
             linear_speed = 0.0
-            angular_speed = -2*self.angular_speed
+            angular_speed = -self.angular_speed
             self.last_action = "TURN_RIGHT"
-        elif action[3] == 3: #RIGHT FORWARD
-            linear_speed = 2*self.linear_forward_speed
-            angular_speed = -2*self.angular_speed
+        elif action[0] == 3: #RIGHT FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = -self.angular_speed
             self.last_action = "FORWARDS_TURN_RIGHT"
-        elif action[3] == 4: #LEFT FORWARD
-            linear_speed = 2*self.linear_forward_speed
-            angular_speed = 2*self.angular_speed
+        elif action[0] == 4: #LEFT FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = self.angular_speed
             self.last_action = "FORWARDS_TURN_LEFT"
-
+        self.move_base('prey',linear_speed, angular_speed, epsilon=0.05, update_rate=10)   
         
-        # We tell TurtleBot2 the linear and angular speed to set to execute
-        self.move_base(4,linear_speed, angular_speed, epsilon=0.05, update_rate=10)    
+        if action[1] == 0: #FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = 0.0
+            self.last_action = "FORWARDS"
+        elif action[1] == 1: #LEFT
+            linear_speed = 0.0
+            angular_speed = self.angular_speed
+            self.last_action = "TURN_LEFT"
+        elif action[1] == 2: #RIGHT
+            linear_speed = 0.0
+            angular_speed = -self.angular_speed
+            self.last_action = "TURN_RIGHT"
+        elif action[1] == 3: #RIGHT FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = -self.angular_speed
+            self.last_action = "FORWARDS_TURN_RIGHT"
+        elif action[1] == 4: #LEFT FORWARD
+            linear_speed = self.linear_forward_speed
+            angular_speed = self.angular_speed
+            self.last_action = "FORWARDS_TURN_LEFT"
+        self.move_base('predator',linear_speed, angular_speed, epsilon=0.05, update_rate=10)  
         time.sleep(0.1)
 
     def _get_obs(self):
@@ -180,13 +167,13 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         """
         rospy.logdebug("Start Get Observation ==>")
         # We get the laser scan data
-        observations = [self.get_camera_rgb_image_raw(1),self.get_camera_rgb_image_raw(2),self.get_camera_rgb_image_raw(3),self.get_camera_rgb_image_raw(4)]
+        observations = [self.get_camera_rgb_image_raw('prey'),self.get_camera_rgb_image_raw('predator')]
         rospy.logdebug("END Get Observation ==>")
         return observations
         
 
     def _is_done(self, observations):
-        r_robot = 0.351/2
+        r_predator = 0.2
         r_prey = 0.2
         p = 0.1
         self._episode_done = False
@@ -195,83 +182,40 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             print("To much steps==> GAME OVER!")
         else:
             prey_position = np.array(self.get_prey_position())
+            predator_position = np.array(self.get_predator_position())
             if prey_position[0] > self.max_x or prey_position[0] < self.min_x or prey_position[1] > self.max_y or prey_position[1] < self.min_y:
                     self._episode_done = True
                     self.prey_win = -1
                     print("Prey hit the wall!")
-            for ii in range (3):
-                current_position = np.array(self.get_robot_position(ii+1))
-                #print (np.linalg.norm(current_position - prey_position))
-                if (r_robot + r_prey + p) >= np.linalg.norm(current_position - prey_position):
-                    self.win[ii] = 1
-                    self.prey_win = -1
-                    print("Robot "+str(ii+1)+" catched the prey!")
+
+            if prey_position[0] < self.goal_max_x and prey_position[0] > self.goal_min_x and prey_position[1] < self.goal_max_y and prey_position[1] > self.goal_min_y:
                     self._episode_done = True
-                if current_position[0] > self.max_x or current_position[0] < self.min_x or current_position[1] > self.max_y or current_position[1] < self.min_y:
+                    self.prey_win = 1
+                    print("Prey got home!")
+
+            if predator_position[0] > self.max_x or predator_position[0] < self.min_x or predator_position[1] > self.max_y or predator_position[1] < self.min_y:
                     self._episode_done = True
-                    self.win[ii] = -1
-                    print("Robot "+str(ii+1)+" hit the wall!")
+                    self.predator_win = -1
+                    print("Predator hit the wall!")
+            
+            if (r_predator + r_prey + p) >= np.linalg.norm(predator_position - prey_position):
+                self.predator_win = 1
+                self.prey_win = -1
+                print("predator catched the prey!")
+                self._episode_done = True
+
         return self._episode_done
 
     def _compute_reward(self, observations, done):
         r_robot = 0.351/2
         p = 0.1
-        reward = [0.0, 0.0, 0.0, 0.0]
+        reward = [0.0, 0.0]
         if done:     
-            if self.prey_win == -1:
-                reward[3] = -1
+            reward[0] = self.prey_win
+            if self.predator_win == 1:
+                reward[1] = 100.0*self.catch_reward/(self.step_number+1.0)
             else:
-                reward[3] = 0
-
-            if 1 in self.win:
-                for ii in range(3):
-                    if self.win[ii] == 1:
-                        reward[ii] = 100.0*self.catch_reward/(self.step_number+1.0)
-                    else:
-                        reward[ii] = 100.0*self.cooperative_catch_reward/(self.step_number+1.0)
-            elif -1 in self.win:
-                for ii in range(3):
-                    if self.win[ii] == -1:
-                        reward[ii] = self.robot_out_of_bounds_penalty
-
-            elif self.prey_win == -1:
-                reward = [0,0,0,-1]
-                   
-            else:
-                reward = [self.time_penelty,self.time_penelty,self.time_penelty,-self.time_penelty]
-
-
-        else:
-            for ii in range (3):
-                current_position = np.array(self.get_robot_position(ii+1))
-                for jj in range (3):
-                    if ii == jj:
-                        continue
-                    else:
-                        othere_position = np.array(self.get_robot_position(jj+1))
-                        if (2*r_robot + p) >= np.linalg.norm(current_position - othere_position):
-                            img1 = self.get_camera_rgb_image_raw(ii+1)
-                            img2 = self.get_camera_rgb_image_raw(jj+1)
-                            M1 = get_image_moment(img1)
-                            M2 = get_image_moment(img2)
-                            if M1 > M2:
-                                reward[ii] = self.robot_hit_robot_penalty
-                                print("robots "+str(ii+1)+" hit robot "+str(jj+1))
-                                break
-                            elif M2 > M1:
-                                reward[jj] = self.robot_hit_robot_penalty
-                                print("robots "+str(jj+1)+" hit robot "+str(ii+1))
-                                break
-
-                            
-
-
-
-
-
-        #print("reward=" + str(reward))
-        
+                reward[1] = self.predator_win        
         return reward
 
 
-    # Internal TaskEnv Methods

@@ -18,6 +18,10 @@ turtlebot2: #namespace
     max_y: 4.6
     min_x: -4.6
     min_y: -4.6
+    goal_max_x: 3.0
+    goal_min_x: 2.0
+    goal_max_y: 3.0
+    goal_min_y: 2.0
     
     
 

@@ -37,34 +37,36 @@ def shuffle_models(models, target_models, experience_replay_buffer,):
         experience_replay_buffer_temp.append(experience_replay_buffer.pop(idx))
     return models_temp, target_models_temp, experience_replay_buffer_temp
 
-def play_ones(env,
-                sess,
-                total_t,
-                experience_replay_buffer,
-                experience_replay_buffer_prey,
-                models,
-                prey_model,
-                target_models,
-                target_models_prey,
-                image_transformer,
-                gamma,
-                batch_sz,
-                epsilon,
-                epsilon_change,
-                epsilon_min):
+def play_ones(
+            env,
+            sess,
+            total_t,
+            experience_replay_buffer_prey,
+            experience_replay_buffer_predator,
+            prey_model,
+            target_models_prey,
+            predator_model,
+            target_models_predator,
+            image_transformer,
+            gamma,
+            batch_sz,
+            epsilon,
+            epsilon_change,
+            epsilon_min):
     
     t0 = datetime.now()
     obs = env.reset()
-    state = []
     
-    for ii in range(3):
-        obs_small = image_transformer.transform(obs[ii], sess)
-        state.append(np.stack([obs_small] * n_history, axis = 2))
 
-    obs_small1 = image_transformer.transform(obs[3][0], sess)
-    obs_small2 = image_transformer.transform(obs[3][1], sess)
+    obs_small1 = image_transformer.transform(obs[0][0], sess)
+    obs_small2 = image_transformer.transform(obs[0][1], sess)
     state_prey1 = np.stack([obs_small1] * n_history, axis = 2)
     state_prey2 = np.stack([obs_small2] * n_history, axis = 2)
+
+    obs_small1 = image_transformer.transform(obs[1][0], sess)
+    obs_small2 = image_transformer.transform(obs[1][1], sess)
+    state_predator1 = np.stack([obs_small1] * n_history, axis = 2)
+    state_predator2 = np.stack([obs_small2] * n_history, axis = 2)
     loss = None
     
     total_time_training = 0
@@ -76,32 +78,31 @@ def play_ones(env,
     while not done:
         
         if total_t % TARGET_UPDATE_PERIOD == 0:
-            for ii in range(3):
-                target_models[ii].copy_from(models[ii])
             target_models_prey.copy_from(prey_model)
+            target_models_predator.copy_from(predator_model)
             print("model is been copied!")
         action = []
-        for ii in range(3):
-            action.append(models[ii].sample_action(state[ii], epsilon))
         action.append(prey_model.sample_action(state_prey1, state_prey2, epsilon))
+        action.append(predator_model.sample_action(state_predator1, state_predator2, epsilon))
         obs, reward, done, _ = env.step(action)
         next_state = []
-        for ii in range(3):
-            obs_small = image_transformer.transform(obs[ii], sess)
-            next_state.append(update_state(state[ii], obs_small))
-        
+        for ii in range(2):
             episode_reward[ii] += reward[ii]
-        
-            experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
-        episode_reward[3] += reward[3]
-        obs_small1 = image_transformer.transform(obs[3][0], sess)
-        obs_small2 = image_transformer.transform(obs[3][1], sess)
-        next_state_prey1, next_state_prey1 = update_state_multicamera(state_prey1,state_prey2, obs_small1, obs_small2)
-        experience_replay_buffer_prey.add_experience(action[3], obs_small1,obs_small2, reward[3], done)
+
+        obs_small1 = image_transformer.transform(obs[0][0], sess)
+        obs_small2 = image_transformer.transform(obs[0][1], sess)
+        next_state_prey1, next_state_prey2 = update_state_multicamera(state_prey1,state_prey2, obs_small1, obs_small2)
+        experience_replay_buffer_prey.add_experience(action[0], obs_small1,obs_small2, reward[0], done)
+
+        obs_small1 = image_transformer.transform(obs[1][0], sess)
+        obs_small2 = image_transformer.transform(obs[1][1], sess)
+        next_state_predator1, next_state_predator2 = update_state_multicamera(state_predator1,state_predator2, obs_small1, obs_small2)
+        experience_replay_buffer_predator.add_experience(action[1], obs_small1,obs_small2, reward[1], done)
+
         t0_2 = datetime.now()
-        for ii in range(3):
-            loss = learn(models[ii], target_models[ii], experience_replay_buffer[ii], gamma, batch_sz)
+        
         loss = learn_multicamera(prey_model, target_models_prey, experience_replay_buffer_prey, gamma, batch_sz)
+        loss = learn_multicamera(predator_model, target_models_predator, experience_replay_buffer_predator, gamma, batch_sz)
         dt = datetime.now() - t0_2
         
         total_time_training += dt.total_seconds()
@@ -137,49 +138,18 @@ if __name__ == '__main__':
     # Set the logging system
     rospack = rospkg.RosPack()
     pkg_path = rospack.get_path('dql_robot')
-    #outdir = pkg_path + '/training_results'
-    #env = wrappers.Monitor(env, outdir, force=True)
     rospy.loginfo("Monitor Wrapper started")
-
     last_time_steps = np.ndarray(0)
-
-    # Loads parameters from the ROS param server
-    # Parameters are stored in a yaml file inside the config directory
-    # They are loaded at runtime by the launch file
-    Alpha = rospy.get_param("/turtlebot2/alpha")
-    Epsilon = rospy.get_param("/turtlebot2/epsilon")
-    Gamma = rospy.get_param("/turtlebot2/gamma")
-    epsilon_discount = rospy.get_param("/turtlebot2/epsilon_discount")
-    nepisodes = rospy.get_param("/turtlebot2/nepisodes")
-    nsteps = rospy.get_param("/turtlebot2/nsteps")
-
-    running_step = rospy.get_param("/turtlebot2/running_step")
-
-    
-    gamma = 0.99
+    gamma = rospy.get_param("/turtlebot2/gamma")
     batch_sz = 32
-    num_episodes = 2000
+    num_episodes = rospy.get_param("/turtlebot2/nepisodes")
     total_t = 0
     start_time = time.time()
     highest_reward = 0
-    epsilon = 1.0
-    epsilon_min = 0.1
-    epsilon_change = (epsilon - epsilon_min) / 500000
-    experience_replay_buffer = []
-    models = []
-    target_models = []
-    for ii in range(3):
-        experience_replay_buffer.append(ReplayMemory())
-        models.append(DQN(
-            K = K,
-            scope="model"+str(ii),
-            image_size=IM_SIZE
-            ))
-        target_models.append(DQN(
-            K = K,
-            scope="target_model"+str(ii),
-            image_size=IM_SIZE
-            ))
+    epsilon = rospy.get_param("/turtlebot2/epsilon")
+    epsilon_min = rospy.get_param("/turtlebot2/epsilon_min")
+    epsilon_change = (epsilon - epsilon_min) / MAX_EXPERIENCE
+    
     experience_replay_buffer_prey = ReplayMemory_multicamera()
     prey_model = DQN_multicamera(
         K = K,
@@ -193,32 +163,46 @@ if __name__ == '__main__':
         image_size1=IM_SIZE,
         image_size2=IM_SIZE
         )
+
+    experience_replay_buffer_predator = ReplayMemory_multicamera()
+    predator_model = DQN_multicamera(
+        K = K,
+        scope="predator_model",
+        image_size1=IM_SIZE,
+        image_size2=IM_SIZE
+        )
+    target_models_predator = DQN_multicamera(
+        K = K,
+        scope="predator_target_model",
+        image_size1=IM_SIZE,
+        image_size2=IM_SIZE
+        )   
     image_transformer = ImageTransformer(IM_SIZE)
-    episode_rewards = np.zeros((4,num_episodes))
+    episode_rewards = np.zeros((2,num_episodes))
     episode_lens = np.zeros(num_episodes)
     obs = env.reset()
     with tf.Session() as sess:
-        for ii in range(3):
-            models[ii].set_session(sess)
-            target_models[ii].set_session(sess)
-
         prey_model.set_session(sess)
         target_models_prey.set_session(sess)
+        predator_model.set_session(sess)
+        target_models_predator.set_session(sess)
         sess.run(tf.global_variables_initializer())
         print("Initializing experience replay buffer...")
         obs = env.reset()
         
         for i in range(MIN_EXPERIENCE):
             action = []
-            for ii in range(4):
+            for ii in range(2):
                 action.append(np.random.choice(K))
             obs, reward, done, _ = env.step(action)
-            for ii in range(3):
-                obs_small = image_transformer.transform(obs[ii], sess)
-                experience_replay_buffer[ii].add_experience(action[ii], obs_small, reward[ii], done)
-            obs_small1 = image_transformer.transform(obs[3][0], sess)
-            obs_small2 = image_transformer.transform(obs[3][1], sess)
-            experience_replay_buffer_prey.add_experience(action[3],obs_small1, obs_small2, reward[3], done)
+            obs_small1 = image_transformer.transform(obs[0][0], sess)
+            obs_small2 = image_transformer.transform(obs[0][1], sess)
+            experience_replay_buffer_prey.add_experience(action[0],obs_small1, obs_small2, reward[0], done)
+
+            obs_small1 = image_transformer.transform(obs[1][0], sess)
+            obs_small2 = image_transformer.transform(obs[1][1], sess)
+            experience_replay_buffer_predator.add_experience(action[1],obs_small1, obs_small2, reward[1], done)
+
             if done:
                 obs = env.reset()
 
@@ -233,12 +217,12 @@ if __name__ == '__main__':
                     env,
                     sess,
                     total_t,
-                    experience_replay_buffer,
                     experience_replay_buffer_prey,
-                    models,
+                    experience_replay_buffer_predator,
                     prey_model,
-                    target_models,
                     target_models_prey,
+                    predator_model,
+                    target_models_predator,
                     image_transformer,
                     gamma,
                     batch_sz,
@@ -246,11 +230,10 @@ if __name__ == '__main__':
                     epsilon_change,
                     epsilon_min)
             last_100_avg = []
-            for ii in range(4):
+            for ii in range(2):
                 episode_rewards[ii,i] = episode_reward[ii]
                 last_100_avg.append(episode_rewards[ii,max(0,i-100):i+1].mean())
             episode_lens[i] = num_steps_in_episode
-            models[0:3], target_models[0:3], experience_replay_buffer[0:3] = shuffle_models(models[0:3], target_models[0:3], experience_replay_buffer[0:3])
             print("Episode:", i ,
                   "Duration:", duration,
                   "Num steps:", num_steps_in_episode,
