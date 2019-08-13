@@ -1,66 +1,31 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="base"      value="$(optenv TURTLEBOT_BASE kobuki)"/> <!-- create, roomba -->
-  <!-- arg name="battery"   value="$(optenv TURTLEBOT_BATTERY /proc/acpi/battery/BAT0)"/ -->  <!-- /proc/acpi/battery/BAT0 -->
-  <arg name="stacks"    value="$(optenv TURTLEBOT_STACKS hexagons)"/>  <!-- circles, hexagons -->
-  <arg name="3d_sensor" value="$(optenv TURTLEBOT_3D_SENSOR kinect)"/>  <!-- kinect, asus_xtion_pro -->
+<arg name="predator_urdf_file" default="$(find xacro)/xacro.py '$(find dql_robot)/urdf/predator.urdf.xacro'" />
+<arg name="prey_urdf_file" default="$(find xacro)/xacro.py '$(find dql_robot)/urdf/prey.urdf.xacro'" />
+<group ns="prey">
+  <!-- send table urdf to param server -->
+ <param name="robot_description" command="$(arg prey_urdf_file)" />
 
-   <arg name="urdf_file" default="$(find xacro)/xacro.py '$(find turtlebot_description)/robots/$(arg base)_$(arg stacks)_$(arg 3d_sensor).urdf.xacro'" />
+  <!-- push table_description to factory and spawn robot in gazebo -->
+  <node name="spawn_prey_model" pkg="gazebo_ros" type="spawn_model"
+        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model prey -y 4 -Y -1.7"/>
   
+<node pkg="robot_state_publisher" name="publisher_state_pub_prey" type="robot_state_publisher">
+<param name="publish_frequency" type="double" value="30.0" />
+</node>
+</group>
 
-  <group ns="robot1">
-  <param name="robot_description" command="$(arg urdf_file)" />
-  <node name="spawn_turtlebot_model1" pkg="gazebo_ros" type="spawn_model"
-        args="$(optenv ROBOT_INITIAL_POSE1) -unpause -urdf -param robot_description -model mobile_base1 -x 0 -y -4 -Y 1.7"/>
+<group ns="predator">
+  <!-- send table urdf to param server -->
+ <param name="robot_description" command="$(arg predator_urdf_file)" />
+
+  <!-- push table_description to factory and spawn robot in gazebo -->
+  <node name="spawn_prey_model" pkg="gazebo_ros" type="spawn_model"
+        args="$(optenv PREY_INITIAL_POSE) -urdf -param robot_description -model predator -y -4 -Y -1.7"/>
   
-  <!-- Velocity muxer -->
-  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager1" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux1"
-        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
-    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
-    <remap from="cmd_vel_mux/output" to="/robot1/mobile_base/commands/velocity"/>
-  </node>
-
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher1">
-    <param name="publish_frequency" type="double" value="30.0" />
-  </node>
-  </group>
-
-  <group ns="robot2">
-  <param name="robot_description" command="$(arg urdf_file)" />
-  <node name="spawn_turtlebot_model2" pkg="gazebo_ros" type="spawn_model"
-        args="$(optenv ROBOT_INITIAL_POSE2) -unpause -urdf -param robot_description -model mobile_base2 -x -4 -y -4 -Y 1.7"/>
-  
-  <!-- Velocity muxer -->
-  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager2" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux2"
-        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
-    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
-    <remap from="cmd_vel_mux/output" to="/robot2/mobile_base/commands/velocity"/>
-  </node>
-
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher2">
-    <param name="publish_frequency" type="double" value="30.0" />
-  </node>
-  </group>
-
-<group ns="robot3">
-<param name="robot_description" command="$(arg urdf_file)" />
- <node name="spawn_turtlebot_model3" pkg="gazebo_ros" type="spawn_model"
-        args="$(optenv ROBOT_INITIAL_POSE3) -unpause -urdf -param robot_description -model mobile_base3 -x 4 -y -4 -Y 1.7"/>
-  
-  <!-- Velocity muxer -->
-  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager3" args="manager"/>
-  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux3"
-        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
-    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
-    <remap from="cmd_vel_mux/output" to="/robot3/mobile_base/commands/velocity"/>
-  </node>
-
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher3">
-    <param name="publish_frequency" type="double" value="30.0" />
-  </node>
-  </group>
-
+<node pkg="robot_state_publisher" name="publisher_state_pub_predator" type="robot_state_publisher">
+<param name="publish_frequency" type="double" value="30.0" />
+</node>
+</group>
 
 </launch>
