@@ -81,44 +81,48 @@ class DQN():
 
 
 class DQN_multicamera():
-    def __init__(self, K, scope, image_size1,image_size2):
+    def __init__(self, K, scope, image_size1,image_size2, n_history):
         self.K = K
         self.scope = scope
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             self.is_training = tf.placeholder_with_default(False, (), 'is_training')
-            self.X1 = tf.placeholder(tf.float32, shape=(None, image_size1,image_size1, 4), name='X1')
-            self.X2 = tf.placeholder(tf.float32, shape=(None, image_size2,image_size2, 4), name='X2')
+            self.X1 = tf.placeholder(tf.float32, shape=(None, image_size1,image_size1, n_history), name='X1')
+            self.X2 = tf.placeholder(tf.float32, shape=(None, image_size2,image_size2, n_history), name='X2')
             self.G = tf.placeholder(tf.float32, shape=(None,), name='G')
             self.actions = tf.placeholder(tf.int32, shape=(None,), name='actions')
             Z1 = self.X1 / 255.0
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
-            Z1 = tf.layers.conv2d(Z1, 32, [4,4], activation=tf.nn.relu)
+            Z1 = tf.layers.conv2d(Z1, 32, [3,3], activation=tf.nn.relu)
+            Z1 = tf.layers.conv2d(Z1, 32, [3,3], activation=tf.nn.relu)
             Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
-            Z1 = tf.layers.conv2d(Z1, 64, [4,4], activation=tf.nn.relu)
+            Z1 = tf.layers.conv2d(Z1, 64, [3,3], activation=tf.nn.relu)
+            Z1 = tf.layers.conv2d(Z1, 64, [3,3], activation=tf.nn.relu)
             Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
             Z1 = tf.layers.conv2d(Z1, 128, [3,3], activation=tf.nn.relu)
-            Z1 = tf.layers.max_pooling2d(Z1,[2,2],1)
+            Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
             Z1 = tf.contrib.layers.flatten(Z1)
             Z1 = tf.layers.dense(Z1, 512, activation=tf.nn.relu)
 
             Z2 = self.X2 / 255.0
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
-            Z2 = tf.layers.conv2d(Z2, 32, [4,4], activation=tf.nn.relu)
+            Z2 = tf.layers.conv2d(Z2, 32, [3,3], activation=tf.nn.relu)
+            Z2 = tf.layers.conv2d(Z2, 32, [3,3], activation=tf.nn.relu)
             Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
-            Z2 = tf.layers.conv2d(Z2, 64, [4,4], activation=tf.nn.relu)
+            Z2 = tf.layers.conv2d(Z2, 64, [3,3], activation=tf.nn.relu)
+            Z2 = tf.layers.conv2d(Z2, 64, [3,3], activation=tf.nn.relu)
             Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
             Z2 = tf.layers.conv2d(Z2, 128, [3,3], activation=tf.nn.relu)
-            Z2 = tf.layers.max_pooling2d(Z2,[2,2],1)
+            Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
             Z2 = tf.contrib.layers.flatten(Z2)
             Z2 = tf.layers.dense(Z2, 512, activation=tf.nn.relu)
             
             Z = tf.concat([Z1,Z2], axis = 1)
             #Z = tf.layers.batch_normalization(Z, training=self.is_training)
-            Z = tf.layers.dense(Z, 1024, activation=tf.nn.relu)
+            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu)
             self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu)
             selected_action_value = tf.reduce_sum(self.predict_op * tf.one_hot(self.actions,K), reduction_indices=[1])
             

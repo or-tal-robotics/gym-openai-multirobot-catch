@@ -21,9 +21,17 @@ import matplotlib.pyplot as plt
 MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
 TARGET_UPDATE_PERIOD = 10000
-IM_SIZE = 84
+IM_SIZE = 128
 K = 3
-n_history = 4
+n_history = 3
+
+def smooth(x):
+    n = len(x)
+    y = np.zeros(n)
+    for i in range(n):
+        start = max(0, i-99)
+        y[i] = float(x[start:(i+1)].sum())/(i-start+1)
+    return y
 
 def shuffle_models(models, target_models, experience_replay_buffer,):
     models_temp = []
@@ -150,32 +158,36 @@ if __name__ == '__main__':
     epsilon_min = rospy.get_param("/turtlebot2/epsilon_min")
     epsilon_change = (epsilon - epsilon_min) / MAX_EXPERIENCE
     
-    experience_replay_buffer_prey = ReplayMemory_multicamera()
+    experience_replay_buffer_prey = ReplayMemory_multicamera(frame_height = IM_SIZE, fram_width=IM_SIZE, agent_history_lenth=n_history)
     prey_model = DQN_multicamera(
         K = K,
         scope="prey_model",
         image_size1=IM_SIZE,
-        image_size2=IM_SIZE
+        image_size2=IM_SIZE,
+        n_history = n_history
         )
     target_models_prey = DQN_multicamera(
         K = K,
         scope="prey_target_model",
         image_size1=IM_SIZE,
-        image_size2=IM_SIZE
+        image_size2=IM_SIZE,
+        n_history = n_history
         )
 
-    experience_replay_buffer_predator = ReplayMemory_multicamera()
+    experience_replay_buffer_predator = ReplayMemory_multicamera(frame_height = IM_SIZE, fram_width=IM_SIZE,agent_history_lenth=n_history)
     predator_model = DQN_multicamera(
         K = K,
         scope="predator_model",
         image_size1=IM_SIZE,
-        image_size2=IM_SIZE
+        image_size2=IM_SIZE,
+        n_history = n_history
         )
     target_models_predator = DQN_multicamera(
         K = K,
         scope="predator_target_model",
         image_size1=IM_SIZE,
-        image_size2=IM_SIZE
+        image_size2=IM_SIZE,
+        n_history = n_history
         )   
     image_transformer = ImageTransformer(IM_SIZE)
     episode_rewards = np.zeros((2,num_episodes))
@@ -246,12 +258,10 @@ if __name__ == '__main__':
         
         y1 = smooth(episode_rewards[0,:])
         y2 = smooth(episode_rewards[1,:])
-        y3 = smooth(episode_rewards[2,:])
-        y4 = smooth(episode_rewards[3,:])
-        plt.plot(y1, label='robot 1')
-        plt.plot(y2, label='robot 2')
-        plt.plot(y3, label='robot 3')
-        plt.plot(y4, label='prey')
+
+        plt.plot(y1, label='prey')
+        plt.plot(y2, label='predator')
+
         plt.xlabel("Episodes")
         plt.ylabel("Reward")
         plt.legend()

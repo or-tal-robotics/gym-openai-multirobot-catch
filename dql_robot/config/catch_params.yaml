@@ -6,9 +6,9 @@ turtlebot2: #namespace
     
     #qlearn parameters
     alpha: 0.1
-    gamma: 0.99
+    gamma: 0.97
     epsilon: 1.0
-    epsilon_min: 0.1
-    nepisodes: 2000
+    epsilon_min: 0.15
+    nepisodes: 3500
     nsteps: 10000
     running_step: 0.06 # Time for each step
