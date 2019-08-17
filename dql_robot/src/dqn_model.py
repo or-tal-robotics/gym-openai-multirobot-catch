@@ -92,37 +92,39 @@ class DQN_multicamera():
             self.actions = tf.placeholder(tf.int32, shape=(None,), name='actions')
             Z1 = self.X1 / 255.0
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
-            Z1 = tf.layers.conv2d(Z1, 32, [8,8], activation=tf.nn.relu)
+            Z1 = tf.layers.conv2d(Z1, 32, [4,4], activation=tf.nn.relu)
             Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
             Z1 = tf.layers.conv2d(Z1, 64, [4,4], activation=tf.nn.relu)
             Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
             #Z1 = tf.layers.batch_normalization(Z1, training=self.is_training)
-            Z1 = tf.layers.conv2d(Z1, 64, [3,3], activation=tf.nn.relu)
-            Z1 = tf.layers.max_pooling2d(Z1,[2,2],2)
+            Z1 = tf.layers.conv2d(Z1, 128, [3,3], activation=tf.nn.relu)
+            Z1 = tf.layers.max_pooling2d(Z1,[2,2],1)
             Z1 = tf.contrib.layers.flatten(Z1)
+            Z1 = tf.layers.dense(Z1, 512, activation=tf.nn.relu)
 
             Z2 = self.X2 / 255.0
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
-            Z2 = tf.layers.conv2d(Z2, 32, [8,8], activation=tf.nn.relu)
+            Z2 = tf.layers.conv2d(Z2, 32, [4,4], activation=tf.nn.relu)
             Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
             Z2 = tf.layers.conv2d(Z2, 64, [4,4], activation=tf.nn.relu)
             Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
             #Z2 = tf.layers.batch_normalization(Z2, training=self.is_training)
-            Z2 = tf.layers.conv2d(Z2, 64, [3,3], activation=tf.nn.relu)
-            Z2 = tf.layers.max_pooling2d(Z2,[2,2],2)
+            Z2 = tf.layers.conv2d(Z2, 128, [3,3], activation=tf.nn.relu)
+            Z2 = tf.layers.max_pooling2d(Z2,[2,2],1)
             Z2 = tf.contrib.layers.flatten(Z2)
+            Z2 = tf.layers.dense(Z2, 512, activation=tf.nn.relu)
             
             Z = tf.concat([Z1,Z2], axis = 1)
             #Z = tf.layers.batch_normalization(Z, training=self.is_training)
-            Z = tf.layers.dense(Z, 512, activation=tf.nn.relu)
+            Z = tf.layers.dense(Z, 1024, activation=tf.nn.relu)
             self.predict_op = tf.layers.dense(Z,K, activation=tf.nn.relu)
             selected_action_value = tf.reduce_sum(self.predict_op * tf.one_hot(self.actions,K), reduction_indices=[1])
             
             cost = tf.reduce_mean(tf.losses.huber_loss(self.G, selected_action_value))
             self.update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            self.train_op = tf.train.AdamOptimizer(5e-6).minimize(cost)
+            self.train_op = tf.train.AdamOptimizer(1e-5).minimize(cost)
             self.cost = cost
             
             

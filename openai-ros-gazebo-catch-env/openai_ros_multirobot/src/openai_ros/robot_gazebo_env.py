@@ -4,12 +4,13 @@ import gym
 from gym.utils import seeding
 from .gazebo_connection import GazeboConnection
 from .controllers_connection import ControllersConnection
-from gazebo_msgs.srv import DeleteModel, SpawnModel
+from gazebo_msgs.srv import DeleteModel, SpawnModel, SetModelState
+from gazebo_msgs.msg import ModelState
 from geometry_msgs.msg import Quaternion,Pose, Point
 #https://bitbucket.org/theconstructcore/theconstruct_msgs/src/master/msg/RLExperimentInfo.msg
 from openai_ros_multirobot.msg import RLExperimentInfo
 from openai_ros.openai_ros_common import ROSLauncher
-
+import time
 
 
 
@@ -30,7 +31,7 @@ class RobotGazeboEnv(gym.Env):
         self.cumulated_episode_reward = [0.0,0.0]
         self.reward_pub = rospy.Publisher('/openai/reward', RLExperimentInfo, queue_size=1)
         rospy.logdebug("END init RobotGazeboEnv")
-
+        self.home_pose = [0, 0]
     # Env methods
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -127,31 +128,59 @@ class RobotGazeboEnv(gym.Env):
     # ----------------------------
 
     def _spwan(self):
-            rospy.wait_for_service("gazebo/spawn_sdf_model")
-            self.spawn_model = rospy.ServiceProxy("gazebo/spawn_sdf_model", SpawnModel)
+            rospy.wait_for_service("gazebo/set_model_state")
+            self.spawn_model = rospy.ServiceProxy("gazebo/set_model_state", SetModelState)
 
-            with open("/home/or/openai_ws/src/dql_sumo/gazebo_sumo/spwan_node/ball/ball.sdf", "r") as f:
-                product_xml = f.read()
-            rx = np.random.uniform(low=-2.4, high=2.4) 
-            if rx < 1.0 and rx > -1.0:
-                ry = np.random.uniform(low=1.0, high=2.4)*(-1)**np.random.randint(0,2) 
-            else:
-                ry = np.random.uniform(low=-2.4, high=2.4) 
+            pred_x = np.random.uniform(low=-4.4, high=4.4) 
+            pred_y = np.random.uniform(low=-4.4, high=4.4)
+            pred_theta = np.random.uniform(low=0.0, high=2*np.pi)
+            pred_orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,pred_theta))
+            pred_pose   =   Pose(Point(x=pred_x, y=pred_y,    z=0.01),   pred_orient)
+            pred_model = ModelState()
+            pred_model.model_name = "predator"
+            pred_model.pose = pred_pose
+            pred_model.reference_frame = "world"
 
-            random_pose = np.array([rx,ry])
+            prey_x = np.random.uniform(low=-4.4, high=4.4) 
+            prey_y = np.random.uniform(low=-4.4, high=4.4)
+            prey_theta = np.random.uniform(low=0.0, high=2*np.pi)
+            while prey_x < pred_x+0.5 and prey_x > pred_x-0.5 and prey_y < pred_y+0.5 and prey_y > pred_y-0.5:
+                prey_x = np.random.uniform(low=-4.4, high=4.4) 
+                prey_y = np.random.uniform(low=-4.4, high=4.4)
+            prey_orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,prey_theta))
+            prey_pose   =   Pose(Point(x=prey_x, y=prey_y,    z=0.01),   prey_orient)
+            prey_model = ModelState()
+            prey_model.model_name = "prey"
+            prey_model.pose = prey_pose
+            prey_model.reference_frame = "world"
 
-            orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,0))
-            item_name   =   "ball"
-            item_pose   =   Pose(Point(x=random_pose[0], y=random_pose[1],    z=0.5),   orient)
-            self.spawn_model(item_name, product_xml, "", item_pose, "world")
+            home_x = np.random.uniform(low=-4.4, high=4.4) 
+            home_y = np.random.uniform(low=-4.4, high=4.4)
+            home_theta = np.random.uniform(low=0.0, high=2*np.pi)
+            while home_x < prey_x+0.5 and home_x > prey_x-0.5 and home_y < prey_y+0.5 and home_y > prey_y-0.5:
+                home_x = np.random.uniform(low=-4.4, high=4.4) 
+                home_y = np.random.uniform(low=-4.4, high=4.4)
+            home_orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,home_theta))
+            home_pose   =   Pose(Point(x=home_x, y=home_y,    z=-0.249),   home_orient)
+            home_model = ModelState()
+            home_model.model_name = "catch_world_small"
+            home_model.pose = home_pose
+            home_model.reference_frame = "world"
+            self.home_pose = [home_x,home_y]
+            
+            self.spawn_model(pred_model)
+            self.spawn_model(prey_model)
+            self.spawn_model(home_model)
             #print("Spawning model:%s", item_name)
 
     def _del_model(self):
         rospy.wait_for_service("gazebo/delete_model")
         delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-        item_name = "prey"
-        #print("Deleting model:%s", item_name)
+        item_name = "predator"
+        print("Deleting model:%s", item_name)
+        time.sleep(0.5)
         delete_model(item_name)
+        time.sleep(0.5)
                 
 
     def _reset_sim(self):
@@ -163,12 +192,14 @@ class RobotGazeboEnv(gym.Env):
             self.gazebo.unpauseSim()
             self.controllers_object.reset_controllers()
             self._check_all_systems_ready()
-            #if self.episode_num > 0:
-                #self._del_model()
+            
             self.gazebo.pauseSim()
+            
             self.gazebo.resetSim()
+            if self.episode_num > 0:
+                self._spwan()
             self.gazebo.unpauseSim()
-            #self._spwan()
+            
             #ros_ws_abspath = rospy.get_param("/turtlebot2/ros_ws_abspath", None)
             #create_random_launch_files()
             #ROSLauncher(rospackage_name="dql_robot",
@@ -182,12 +213,14 @@ class RobotGazeboEnv(gym.Env):
             rospy.logwarn("DONT RESET CONTROLLERS")
             self.gazebo.unpauseSim()
             self._check_all_systems_ready()
-            #if self.episode_num > 0:
-                #self._del_model()
+            
             self.gazebo.pauseSim()
+            
             self.gazebo.resetSim()
+            if self.episode_num > 0:
+                self._spwan()
             self.gazebo.unpauseSim()
-            #self._spwan()
+            
             #ros_ws_abspath = rospy.get_param("/turtlebot2/ros_ws_abspath", None)
             #create_random_launch_files()
             #ROSLauncher(rospackage_name="dql_robot",

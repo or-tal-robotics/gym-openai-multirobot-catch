@@ -148,15 +148,15 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             angular_speed = -self.angular_speed
             self.last_action = "TURN_RIGHT"
         elif action[1] == 3: #RIGHT FORWARD
-            linear_speed = self.linear_forward_speed
+            linear_speed = self.linear_turn_speed
             angular_speed = -self.angular_speed
             self.last_action = "FORWARDS_TURN_RIGHT"
         elif action[1] == 4: #LEFT FORWARD
-            linear_speed = self.linear_forward_speed
+            linear_speed = self.linear_turn_speed
             angular_speed = self.angular_speed
             self.last_action = "FORWARDS_TURN_LEFT"
         self.move_base('predator',linear_speed, angular_speed, epsilon=0.05, update_rate=10)  
-        time.sleep(0.1)
+        time.sleep(0.2)
 
     def _get_obs(self):
         """
@@ -177,8 +177,10 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         r_prey = 0.2
         p = 0.1
         self._episode_done = False
-        if self.step_number > 500:
+        if self.step_number > 3000:
             self._episode_done = True
+            self.predator_win = -0.5
+            self.prey_win = 0.5
             print("To much steps==> GAME OVER!")
         else:
             prey_position = np.array(self.get_prey_position())
@@ -188,7 +190,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
                     self.prey_win = -1
                     print("Prey hit the wall!")
 
-            if prey_position[0] < self.goal_max_x and prey_position[0] > self.goal_min_x and prey_position[1] < self.goal_max_y and prey_position[1] > self.goal_min_y:
+            if prey_position[0] < self.home_pose[0] + self.goal_max_x and prey_position[0] > self.home_pose[0] + self.goal_min_x and prey_position[1] < self.home_pose[1] + self.goal_max_y and prey_position[1] > self.home_pose[1] + self.goal_min_y:
                     self._episode_done = True
                     self.prey_win = 1
                     print("Prey got home!")

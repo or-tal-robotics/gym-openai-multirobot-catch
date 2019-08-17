@@ -22,7 +22,7 @@ pathOut_robot1 = '/home/or/openai_ws_catch/src/gym-openai-multirobot-catch/dql_r
 pathOut_robot2 = '/home/or/openai_ws_catch/src/gym-openai-multirobot-catch/dql_robot/video/robot2/episode'
 pathOut_robot3 = '/home/or/openai_ws_catch/src/gym-openai-multirobot-catch/dql_robot/video/robot3/episode'
 pathOut_prey = '/home/or/openai_ws_catch/src/gym-openai-multirobot-catch/dql_robot/video/prey/episode'
-pathOut_gazebo = '/home/or/openai_ws_catch/src/gym-openai-multirobot-catch/dql_robot/video/gazebo/episode'
+pathOut_gazebo = '/home/or/catch_ws/src/gym-openai-multirobot-catch/dql_robot/video/gazebo/episode'
 record_frq = 10
 
 def counter_cb(msg):

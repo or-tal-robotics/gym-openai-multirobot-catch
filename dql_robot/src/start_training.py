@@ -22,7 +22,7 @@ MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
 TARGET_UPDATE_PERIOD = 10000
 IM_SIZE = 84
-K = 5
+K = 3
 n_history = 4
 
 def shuffle_models(models, target_models, experience_replay_buffer,):
@@ -112,7 +112,7 @@ def play_ones(
         total_t += 1
         epsilon = max(epsilon - epsilon_change, epsilon_min)
         
-    return total_t, episode_reward, (datetime.now()-t0), num_steps_in_episode, total_time_training/num_steps_in_episode, loss
+    return total_t, episode_reward, (datetime.now()-t0), num_steps_in_episode, total_time_training/num_steps_in_episode, epsilon
 
 
 if __name__ == '__main__':
