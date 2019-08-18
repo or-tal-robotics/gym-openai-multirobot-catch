@@ -22,8 +22,11 @@ MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
 TARGET_UPDATE_PERIOD = 10000
 IM_SIZE = 128
+LASER_SIZE = 720
+LASER_MIN = 0.1
+LASER_MAX = 30
 K = 3
-n_history = 3
+n_history = 4
 
 def smooth(x):
     n = len(x)
@@ -63,18 +66,22 @@ def play_ones(
             epsilon_min):
     
     t0 = datetime.now()
-    obs = env.reset()
+    all_obs = env.reset()
+    img_obs = all_obs[0]
+    laser_obs = all_obs[1]
     
 
-    obs_small1 = image_transformer.transform(obs[0][0], sess)
-    obs_small2 = image_transformer.transform(obs[0][1], sess)
+    obs_small1 = image_transformer.transform(img_obs[0][0], sess)
+    obs_small2 = image_transformer.transform(img_obs[0][1], sess)
     state_prey1 = np.stack([obs_small1] * n_history, axis = 2)
     state_prey2 = np.stack([obs_small2] * n_history, axis = 2)
+    state_prey_laser = np.stack([laser_obs[0]] * n_history, axis = 1)
 
-    obs_small1 = image_transformer.transform(obs[1][0], sess)
-    obs_small2 = image_transformer.transform(obs[1][1], sess)
+    obs_small1 = image_transformer.transform(img_obs[1][0], sess)
+    obs_small2 = image_transformer.transform(img_obs[1][1], sess)
     state_predator1 = np.stack([obs_small1] * n_history, axis = 2)
     state_predator2 = np.stack([obs_small2] * n_history, axis = 2)
+    state_predator_laser = np.stack([laser_obs[1]] * n_history, axis = 1)
     loss = None
     
     total_time_training = 0
@@ -90,22 +97,24 @@ def play_ones(
             target_models_predator.copy_from(predator_model)
             print("model is been copied!")
         action = []
-        action.append(prey_model.sample_action(state_prey1, state_prey2, epsilon))
-        action.append(predator_model.sample_action(state_predator1, state_predator2, epsilon))
-        obs, reward, done, _ = env.step(action)
+        action.append(prey_model.sample_action(state_prey1, state_prey2, state_prey_laser, epsilon))
+        action.append(predator_model.sample_action(state_predator1, state_predator2, state_predator_laser, epsilon))
+        all_obs, reward, done, _ = env.step(action)
+        img_obs = all_obs[0]
+        laser_obs = all_obs[1]
         next_state = []
         for ii in range(2):
             episode_reward[ii] += reward[ii]
 
-        obs_small1 = image_transformer.transform(obs[0][0], sess)
-        obs_small2 = image_transformer.transform(obs[0][1], sess)
-        next_state_prey1, next_state_prey2 = update_state_multicamera(state_prey1,state_prey2, obs_small1, obs_small2)
-        experience_replay_buffer_prey.add_experience(action[0], obs_small1,obs_small2, reward[0], done)
+        obs_small1 = image_transformer.transform(img_obs[0][0], sess)
+        obs_small2 = image_transformer.transform(img_obs[0][1], sess)
+        next_state_prey1, next_state_prey2, next_state_prey_laser = update_state_multicamera(state_prey1,state_prey2,state_prey_laser, obs_small1, obs_small2, laser_obs[0])
+        experience_replay_buffer_prey.add_experience(action[0], obs_small1,obs_small2, laser_obs[0], reward[0], done)
 
-        obs_small1 = image_transformer.transform(obs[1][0], sess)
-        obs_small2 = image_transformer.transform(obs[1][1], sess)
-        next_state_predator1, next_state_predator2 = update_state_multicamera(state_predator1,state_predator2, obs_small1, obs_small2)
-        experience_replay_buffer_predator.add_experience(action[1], obs_small1,obs_small2, reward[1], done)
+        obs_small1 = image_transformer.transform(img_obs[1][0], sess)
+        obs_small2 = image_transformer.transform(img_obs[1][1], sess)
+        next_state_predator1, next_state_predator2, next_state_predator_laser = update_state_multicamera(state_predator1,state_predator2, state_predator_laser, obs_small1, obs_small2, laser_obs[1])
+        experience_replay_buffer_predator.add_experience(action[1], obs_small1,obs_small2, laser_obs[1], reward[1], done)
 
         t0_2 = datetime.now()
         
@@ -116,7 +125,12 @@ def play_ones(
         total_time_training += dt.total_seconds()
         num_steps_in_episode += 1
         
-        state = next_state
+        state_prey1 = next_state_prey1
+        state_prey2 = next_state_prey2
+        state_prey_laser = next_state_prey_laser
+        state_predator1 = next_state_predator1
+        state_predator2 = next_state_predator2
+        state_predator_laser = next_state_predator_laser
         total_t += 1
         epsilon = max(epsilon - epsilon_change, epsilon_min)
         
@@ -164,6 +178,9 @@ if __name__ == '__main__':
         scope="prey_model",
         image_size1=IM_SIZE,
         image_size2=IM_SIZE,
+        laser_size = LASER_SIZE,
+        lase_min = LASER_MIN,
+        laser_max = LASER_MAX,
         n_history = n_history
         )
     target_models_prey = DQN_multicamera(
@@ -171,6 +188,9 @@ if __name__ == '__main__':
         scope="prey_target_model",
         image_size1=IM_SIZE,
         image_size2=IM_SIZE,
+        laser_size = LASER_SIZE,
+        lase_min = LASER_MIN,
+        laser_max = LASER_MAX,
         n_history = n_history
         )
 
@@ -180,6 +200,9 @@ if __name__ == '__main__':
         scope="predator_model",
         image_size1=IM_SIZE,
         image_size2=IM_SIZE,
+        laser_size = LASER_SIZE,
+        lase_min = LASER_MIN,
+        laser_max = LASER_MAX,
         n_history = n_history
         )
     target_models_predator = DQN_multicamera(
@@ -187,6 +210,9 @@ if __name__ == '__main__':
         scope="predator_target_model",
         image_size1=IM_SIZE,
         image_size2=IM_SIZE,
+        laser_size = LASER_SIZE,
+        lase_min = LASER_MIN,
+        laser_max = LASER_MAX,
         n_history = n_history
         )   
     image_transformer = ImageTransformer(IM_SIZE)
@@ -206,14 +232,16 @@ if __name__ == '__main__':
             action = []
             for ii in range(2):
                 action.append(np.random.choice(K))
-            obs, reward, done, _ = env.step(action)
-            obs_small1 = image_transformer.transform(obs[0][0], sess)
-            obs_small2 = image_transformer.transform(obs[0][1], sess)
-            experience_replay_buffer_prey.add_experience(action[0],obs_small1, obs_small2, reward[0], done)
+            all_obs, reward, done, _ = env.step(action)
+            img_obs = all_obs[0]
+            laser_obs = all_obs[1]
+            obs_small1 = image_transformer.transform(img_obs[0][0], sess)
+            obs_small2 = image_transformer.transform(img_obs[0][1], sess)
+            experience_replay_buffer_prey.add_experience(action[0],obs_small1, obs_small2,laser_obs[0], reward[0], done)
 
-            obs_small1 = image_transformer.transform(obs[1][0], sess)
-            obs_small2 = image_transformer.transform(obs[1][1], sess)
-            experience_replay_buffer_predator.add_experience(action[1],obs_small1, obs_small2, reward[1], done)
+            obs_small1 = image_transformer.transform(img_obs[1][0], sess)
+            obs_small2 = image_transformer.transform(img_obs[1][1], sess)
+            experience_replay_buffer_predator.add_experience(action[1],obs_small1, obs_small2,laser_obs[1], reward[1], done)
 
             if done:
                 obs = env.reset()

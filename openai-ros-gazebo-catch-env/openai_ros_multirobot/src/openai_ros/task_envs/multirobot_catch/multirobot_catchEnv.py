@@ -167,9 +167,10 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         """
         rospy.logdebug("Start Get Observation ==>")
         # We get the laser scan data
-        observations = [self.get_camera_rgb_image_raw('prey'),self.get_camera_rgb_image_raw('predator')]
+        img_observations = [self.get_camera_rgb_image_raw('prey'),self.get_camera_rgb_image_raw('predator')]
+        laser_observations = [self.LaserScan_prey, self.LaserScan_predator]
         rospy.logdebug("END Get Observation ==>")
-        return observations
+        return (img_observations, laser_observations)
         
 
     def _is_done(self, observations):

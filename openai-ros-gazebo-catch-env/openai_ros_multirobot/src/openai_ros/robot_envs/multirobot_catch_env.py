@@ -58,9 +58,11 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
         
         rospy.Subscriber("/prey/front_camera/image_raw", Image, self._front_camera_rgb_image_raw_callback_prey)
         rospy.Subscriber("/prey/back_camera/image_raw", Image, self._back_camera_rgb_image_raw_callback_prey)
+        rospy.Subscriber("/prey/scan", LaserScan, self._LaserScan_callback_prey)
 
         rospy.Subscriber("/predator/right_camera/image_raw", Image, self._right_camera_rgb_image_raw_callback_predator)
         rospy.Subscriber("/predator/left_camera/image_raw", Image, self._left_camera_rgb_image_raw_callback_predator)
+        rospy.Subscriber("/predator/scan", LaserScan, self._LaserScan_callback_predator)
 
         self._cmd_vel_pub_predator = rospy.Publisher('/predator/cmd_vel', Twist, queue_size=1)
         self._cmd_vel_pub_prey = rospy.Publisher('/prey/cmd_vel', Twist, queue_size=1)
@@ -112,12 +114,18 @@ class TurtleBot2catchEnv(robot_gazebo_env.RobotGazeboEnv):
     
     def _back_camera_rgb_image_raw_callback_prey(self, data):
         self.back_camera_rgb_image_raw_prey = self.bridge.imgmsg_to_cv2(data,"rgb8")
+
+    def _LaserScan_callback_prey(self, data):
+        self.LaserScan_prey = data.ranges
             
     def _left_camera_rgb_image_raw_callback_predator(self, data):
             self.left_camera_rgb_image_raw_predator = self.bridge.imgmsg_to_cv2(data,"rgb8")
     
     def _right_camera_rgb_image_raw_callback_predator(self, data):
         self.right_camera_rgb_image_raw_predator = self.bridge.imgmsg_to_cv2(data,"rgb8")
+
+    def _LaserScan_callback_predator(self, data):
+        self.LaserScan_predator = data.ranges
 
         
     def _check_publishers_connection(self):
