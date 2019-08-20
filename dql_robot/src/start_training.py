@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 
 MAX_EXPERIENCE = 50000
 MIN_EXPERIENCE = 100
-TARGET_UPDATE_PERIOD = 10000
-IM_SIZE = 128
+TARGET_UPDATE_PERIOD = 50000
+IM_SIZE = 84
 LASER_SIZE = 720
 LASER_MIN = 0.1
 LASER_MAX = 30
@@ -163,7 +163,8 @@ if __name__ == '__main__':
     rospy.loginfo("Monitor Wrapper started")
     last_time_steps = np.ndarray(0)
     gamma = rospy.get_param("/turtlebot2/gamma")
-    batch_sz = 32
+    K = gamma = rospy.get_param("/turtlebot2/n_actions")
+    batch_sz = 64
     num_episodes = rospy.get_param("/turtlebot2/nepisodes")
     total_t = 0
     start_time = time.time()

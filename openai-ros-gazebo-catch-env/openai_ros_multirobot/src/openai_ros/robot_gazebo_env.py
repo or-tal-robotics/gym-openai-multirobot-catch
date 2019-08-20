@@ -154,8 +154,8 @@ class RobotGazeboEnv(gym.Env):
             prey_model.pose = prey_pose
             prey_model.reference_frame = "world"
 
-            home_x = np.random.uniform(low=-4.4, high=4.4) 
-            home_y = np.random.uniform(low=-4.4, high=4.4)
+            home_x = np.random.uniform(low=-4.2, high=4.2) 
+            home_y = np.random.uniform(low=-4.2, high=4.2)
             home_theta = np.random.uniform(low=0.0, high=2*np.pi)
             while home_x < prey_x+0.5 and home_x > prey_x-0.5 and home_y < prey_y+0.5 and home_y > prey_y-0.5:
                 home_x = np.random.uniform(low=-4.4, high=4.4) 
