@@ -90,7 +90,7 @@ class ReplayMemory_multicamera():
         self.new_states_laser = np.empty((self.batch_size,self.agent_history_lenth,self.laser_size), dtype=np.float32)
         self.indices = np.empty(self.batch_size, dtype = np.int32)
         
-    def add_experience(self, action, frame1,frame2,laser, reward, terminal):
+    def add_experience(self, action, frame1,frame2, reward, terminal):
         if frame1.shape != (self.frame_height, self.frame_width):
             raise ValueError('Frames dimansions are wrong!')
         if frame2.shape != (self.frame_height, self.frame_width):
@@ -99,7 +99,7 @@ class ReplayMemory_multicamera():
         self.actions[self.current] = action
         self.frames1[self.current, ...] = frame1
         self.frames2[self.current, ...] = frame2
-        self.laser[self.current, ...] = laser
+        #self.laser[self.current, ...] = laser
         self.rewards[self.current] = reward
         self.terminal_flags[self.current] = terminal
         
@@ -111,7 +111,7 @@ class ReplayMemory_multicamera():
             raise ValueError("The replay memory is empty!")
         if index < self.agent_history_lenth-1:
             raise ValueError("Index must be over 3!")
-        return self.frames1[index-self.agent_history_lenth+1:index+1, ...], self.frames2[index-self.agent_history_lenth+1:index+1, ...], self.laser[index-self.agent_history_lenth+1:index+1, ...]
+        return self.frames1[index-self.agent_history_lenth+1:index+1, ...], self.frames2[index-self.agent_history_lenth+1:index+1, ...]
     
     def get_valid_indices(self):
         for i in range(self.batch_size):
@@ -132,33 +132,31 @@ class ReplayMemory_multicamera():
         
         self.get_valid_indices()
         for i, idx in enumerate(self.indices):
-            self.states1[i], self.states2[i], self.states_laser[i] = self.get_state(idx - 1)
-            self.new_states1[i], self.new_states2[i], self.new_states_laser[i] = self.get_state(idx)
+            self.states1[i], self.states2[i] = self.get_state(idx - 1)
+            self.new_states1[i], self.new_states2[i]= self.get_state(idx)
         
         return np.transpose(self.states1, axes=(0,2,3,1)), \
             np.transpose(self.states2, axes=(0,2,3,1)), \
-            np.transpose(self.states_laser, axes=(0,2,1)), \
             self.actions[self.indices], \
             self.rewards[self.indices], \
             np.transpose(self.new_states1, axes=(0,2,3,1)), \
             np.transpose(self.new_states2, axes=(0,2,3,1)), \
-            np.transpose(self.new_states_laser, axes=(0,2,1)), \
             self.terminal_flags[self.indices]
 
 
-def update_state_multicamera(state1,state2,state_laser, obs_small1, obs_small2, obs_laser):
-    return np.append(state1[:,:,1:], np.expand_dims(obs_small1, 2), axis = 2), np.append(state2[:,:,1:], np.expand_dims(obs_small2, 2), axis = 2), np.append(state_laser[:,1:], np.expand_dims(obs_laser, 1), axis = 1)
+def update_state_multicamera(state1,state2, obs_small1, obs_small2):
+    return np.append(state1[:,:,1:], np.expand_dims(obs_small1, 2), axis = 2), np.append(state2[:,:,1:], np.expand_dims(obs_small2, 2), axis = 2)
 
 def update_state(state, obs_small):
     return np.append(state[:,:,1:], np.expand_dims(obs_small, 2), axis = 2)
 
 def learn_multicamera(model, target_model, experience_replay_buffer, gamma, batch_size):
-    states1, states2,states_laser, actions, rewards, next_states1, next_states2, new_states_laser, dones = experience_replay_buffer.get_minibatch()
-    next_Qs = target_model.predict(next_states1, next_states2, new_states_laser)
+    states1, states2, actions, rewards, next_states1, next_states2, dones = experience_replay_buffer.get_minibatch()
+    next_Qs = target_model.predict(next_states1, next_states2)
     next_Q = np.amax(next_Qs, axis=1)
     targets = rewards + np.invert(dones).astype(np.float32) * gamma * next_Q
      
-    loss = model.update(states1,states2,states_laser, actions, targets)
+    loss = model.update(states1,states2, actions, targets)
     return loss
 
 def learn(model, target_model, experience_replay_buffer, gamma, batch_size):

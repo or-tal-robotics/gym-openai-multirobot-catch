@@ -156,7 +156,7 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
             angular_speed = self.angular_speed
             self.last_action = "FORWARDS_TURN_LEFT"
         self.move_base('predator',linear_speed, angular_speed, epsilon=0.05, update_rate=10)  
-        time.sleep(0.1)
+        time.sleep(0.05)
 
     def _get_obs(self):
         """
@@ -168,9 +168,9 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         rospy.logdebug("Start Get Observation ==>")
         # We get the laser scan data
         img_observations = [self.get_camera_rgb_image_raw('prey'),self.get_camera_rgb_image_raw('predator')]
-        laser_observations = [self.LaserScan_prey, self.LaserScan_predator]
+        #laser_observations = [self.LaserScan_prey, self.LaserScan_predator]
         rospy.logdebug("END Get Observation ==>")
-        return (img_observations, laser_observations)
+        return img_observations
         
 
     def _is_done(self, observations):
@@ -180,8 +180,8 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         self._episode_done = False
         if self.step_number > 3000:
             self._episode_done = True
-            self.predator_win = -0.5
-            self.prey_win = 0.5
+            self.predator_win = -1
+            self.prey_win = -1
             print("To much steps==> GAME OVER!")
         else:
             prey_position = np.array(self.get_prey_position())
@@ -214,11 +214,17 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         p = 0.1
         reward = [0.0, 0.0]
         if done:     
-            reward[0] = self.prey_win
+            if self.prey_win == 1:
+                reward[0] = 100.0/(self.step_number+1.0)
+            else:
+                reward[0] = self.prey_win 
+
             if self.predator_win == 1:
                 reward[1] = 100.0*self.catch_reward/(self.step_number+1.0)
             else:
-                reward[1] = self.predator_win        
+                reward[1] = self.predator_win      
+        else:
+            reward = [-0.001, -0.001]
         return reward
 
 

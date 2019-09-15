@@ -2,6 +2,25 @@
 <sdf version='1.6'>
   <world name="catch_world">
 
+  <physics type="ode">
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>40</iters>
+          <precon_iters>0</precon_iters>
+          <sor>1.300000</sor>
+        </solver>
+        <constraints>
+          <cfm>0.000000</cfm>
+          <erp>0.200000</erp>
+          <contact_max_correcting_vel>100.000000</contact_max_correcting_vel>
+          <contact_surface_layer>0.001000</contact_surface_layer>
+        </constraints>
+      </ode>
+      <real_time_update_rate>0.000000</real_time_update_rate>
+      <max_step_size>0.001000</max_step_size>
+    </physics>
+
    <light name='sun' type='directional'>
       <cast_shadows>1</cast_shadows>
       <pose frame=''>0 0 50 0 -0 0</pose>
@@ -15,6 +34,7 @@
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
     </light>
+
     <model name='ground_plane'>
       <static>1</static>
       <link name='link'>
@@ -41,7 +61,7 @@
             </friction>
             <bounce/>
           </surface>
-          <max_contacts>10</max_contacts>
+          <max_contacts>100</max_contacts>
         </collision>
         <visual name='visual'>
           <cast_shadows>0</cast_shadows>
@@ -50,6 +70,9 @@
               <normal>0 0 1</normal>
               <size>100 100</size>
             </plane>
+            <material>
+          <ambient>0.1 0.1 0.1 0.1</ambient>
+        </material>
           </geometry>
  
         </visual>
@@ -58,6 +81,7 @@
         <kinematic>0</kinematic>
       </link>
     </model>
+
     <light name='sun' type='directional'>
       <cast_shadows>1</cast_shadows>
       <pose frame=''>0 0 10 0 -0 0</pose>
@@ -71,11 +95,7 @@
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
     </light>
-    <physics name='default_physics' default='0' type='ode'>
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>1000</real_time_update_rate>
-    </physics>
+
     <scene>
       <ambient>0.4 0.4 0.4 1</ambient>
       <background>0.7 0.7 0.7 1</background>
@@ -88,6 +108,7 @@
       <elevation>0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
+
     <gui fullscreen='0'>
       <camera name='user_camera'>
         <pose frame=''>2.66412 -8.85285 5.13988 0 0.455643 1.72019</pose>
@@ -103,7 +124,7 @@
       <collision name='Wall_0_Collision'>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <pose frame=''>0 0 0 0 -0 0</pose>
@@ -112,7 +133,7 @@
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <material>
@@ -128,7 +149,7 @@
       <collision name='Wall_1_Collision'>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <pose frame=''>0 0 0.25 0 -0 0</pose>
@@ -137,7 +158,7 @@
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <material>
@@ -163,7 +184,7 @@
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <material>
@@ -180,7 +201,7 @@
       <collision name='Wall_3_Collision'>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <pose frame=''>0 0 0 0 -0 0</pose>
@@ -189,7 +210,7 @@
         <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <box>
-            <size>10.15 0.15 0.65</size>
+            <size>10.15 0.15 0.85</size>
           </box>
         </geometry>
         <material>
@@ -213,21 +234,23 @@
     <link name='Wall_10'>
       <collision name='Wall_10_Collision'>
         <geometry>
-          <box>
-            <size>1.5 1.5 0.001</size>
-          </box>
+          <cylinder>
+            <radius>1.5</radius>
+            <length>0.001</length>
+          </cylinder>
         </geometry>
         <pose frame=''>0 0 0.25 0 -0 0</pose>
       </collision>
       <visual name='Wall_10_Visual'>
         <pose frame=''>0 0 0.25 0 -0 0</pose>
         <geometry>
-          <box>
-            <size>1.15 1.15 0.005</size>
-          </box>
+          <cylinder>
+            <radius>1.5</radius>
+            <length>0.15</length>
+          </cylinder>
         </geometry>
         <material>
-          <ambient>0 0 0 1</ambient>
+          <ambient>1 0 0.5 1</ambient>
         </material>
         <meta>
           <layer>0</layer>

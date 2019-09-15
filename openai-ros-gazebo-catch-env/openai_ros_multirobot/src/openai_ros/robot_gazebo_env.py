@@ -154,12 +154,12 @@ class RobotGazeboEnv(gym.Env):
             prey_model.pose = prey_pose
             prey_model.reference_frame = "world"
 
-            home_x = np.random.uniform(low=-4.2, high=4.2) 
-            home_y = np.random.uniform(low=-4.2, high=4.2)
+            home_x = np.random.uniform(low=-3, high=3) 
+            home_y = np.random.uniform(low=-3, high=3)
             home_theta = np.random.uniform(low=0.0, high=2*np.pi)
-            while home_x < prey_x+0.5 and home_x > prey_x-0.5 and home_y < prey_y+0.5 and home_y > prey_y-0.5:
-                home_x = np.random.uniform(low=-4.4, high=4.4) 
-                home_y = np.random.uniform(low=-4.4, high=4.4)
+            while home_x < prey_x+1.5 and home_x > prey_x-1.5 and home_y < prey_y+1.5 and home_y > prey_y-1.5:
+                home_x = np.random.uniform(low=-3, high=3) 
+                home_y = np.random.uniform(low=-3, high=3)
             home_orient = Quaternion(*tf.transformations.quaternion_from_euler(0,0,home_theta))
             home_pose   =   Pose(Point(x=home_x, y=home_y,    z=-0.249),   home_orient)
             home_model = ModelState()
