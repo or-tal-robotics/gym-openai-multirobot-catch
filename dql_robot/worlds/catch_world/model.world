@@ -250,7 +250,7 @@
           </cylinder>
         </geometry>
         <material>
-          <ambient>1 0 0.5 1</ambient>
+          <ambient>0.1 0.2 0.5 1</ambient>
         </material>
         <meta>
           <layer>0</layer>
