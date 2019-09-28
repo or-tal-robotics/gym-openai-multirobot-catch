@@ -19,13 +19,13 @@ from std_msgs.msg import Int16
 import matplotlib.pyplot as plt
 
 MAX_EXPERIENCE = 50000
-MIN_EXPERIENCE = 1000
+MIN_EXPERIENCE = 5000
 TARGET_UPDATE_PERIOD = 50000
-IM_SIZE = 128
+IM_SIZE = 84
 LASER_SIZE = 720
 LASER_MIN = 0.1
 LASER_MAX = 10
-K = 3
+K = 5
 n_history = 4
 
 def smooth(x):
@@ -63,7 +63,8 @@ def play_ones(
             batch_sz,
             epsilon,
             epsilon_change,
-            epsilon_min):
+            epsilon_min,
+            train_indxs):
     
     t0 = datetime.now()
     img_obs = env.reset()
@@ -116,9 +117,11 @@ def play_ones(
         experience_replay_buffer_predator.add_experience(action[1], obs_small, reward[1], done)
 
         t0_2 = datetime.now()
-        
-        loss = learn_multicamera(prey_model, target_models_prey, experience_replay_buffer_prey, gamma, batch_sz)
-        loss = learn(predator_model, target_models_predator, experience_replay_buffer_predator, gamma, batch_sz)
+        for ii in train_indxs:
+            if ii == 0:
+                loss = learn_multicamera(prey_model, target_models_prey, experience_replay_buffer_prey, gamma, batch_sz)
+            if ii == 1:
+                loss = learn(predator_model, target_models_predator, experience_replay_buffer_predator, gamma, batch_sz)
         dt = datetime.now() - t0_2
         
         total_time_training += dt.total_seconds()
@@ -168,9 +171,11 @@ if __name__ == '__main__':
     total_t = 0
     start_time = time.time()
     highest_reward = 0
+    train_idxs = [0,1]
+    skip_intervel = 50
     epsilon = rospy.get_param("/turtlebot2/epsilon")
     epsilon_min = rospy.get_param("/turtlebot2/epsilon_min")
-    epsilon_change = (epsilon - epsilon_min) / 5000
+    epsilon_change = (epsilon - epsilon_min) / 100000
     
     experience_replay_buffer_prey = ReplayMemory_multicamera(frame_height = IM_SIZE, fram_width=IM_SIZE, agent_history_lenth=n_history)
     prey_model = DQN_prey(
@@ -243,6 +248,12 @@ if __name__ == '__main__':
             msg_data.data = i
             episode_counter_pub.publish(msg_data)
 
+            if i % skip_intervel == 0:
+                if train_idxs == [0]:
+                    train_idxs = [1]
+                else:
+                    train_idxs = [0]
+
         
 
             total_t, episode_reward, duration, num_steps_in_episode, time_per_step, epsilon = play_ones(
@@ -260,7 +271,8 @@ if __name__ == '__main__':
                     batch_sz,
                     epsilon,
                     epsilon_change,
-                    epsilon_min)
+                    epsilon_min,
+                    train_idxs)
             last_100_avg = []
             for ii in range(2):
                 episode_rewards[ii,i] = episode_reward[ii]

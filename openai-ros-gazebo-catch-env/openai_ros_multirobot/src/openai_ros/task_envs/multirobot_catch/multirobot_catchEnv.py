@@ -215,12 +215,12 @@ class CatchEnv(multirobot_catch_env.TurtleBot2catchEnv):
         reward = [0.0, 0.0]
         if done:     
             if self.prey_win == 1:
-                reward[0] = 100.0/(self.step_number+1.0)
+                reward[0] = 1
             else:
                 reward[0] = self.prey_win 
 
             if self.predator_win == 1:
-                reward[1] = 100.0*self.catch_reward/(self.step_number+1.0)
+                reward[1] = 1
             else:
                 reward[1] = self.predator_win      
         else:
